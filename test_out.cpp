@@ -19,6 +19,7 @@ int main( int argc, const char **argv)
    const char *filename;
    char line1[100], line2[100];
    int verbose = 0;
+   bool legend_shown = false;
 
    if( !strcmp( argv[argc - 1], "-v"))
       {
@@ -54,12 +55,20 @@ int main( int argc, const char **argv)
                {
                const double a1 = pow(xke / tle.xno, two_thirds);  /* in Earth radii */
 
+               if( !legend_shown)
+                  {
+                  legend_shown = true;
+                  printf(
+  "1 NoradU COSPAR   Epoch.epoch     dn/dt/2  d2n/dt2/6 BSTAR    T El# C\n"
+  "2 NoradU Inclina RAAscNode Eccent  ArgPeri MeanAno  MeanMotion Rev# C\n");
+                  }
                printf( "   Perigee: %.4f km\n",
                     (a1 * (1. - tle.eo) - 1.) * earth_radius_in_km);
                printf( "   Apogee: %.4f km\n",
                     (a1 * (1. + tle.eo) - 1.) * earth_radius_in_km);
                printf( "   Orbital period: %.4f min\n",
                     2. * pi / tle.xno);
+               printf( "   Epoch: JD %.5f\n", tle.epoch);
                }
             }
          }
