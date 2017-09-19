@@ -20,8 +20,8 @@ obs_tes2.exe: obs_tes2.obj wsatlib.lib
 sat_id.exe: sat_id.obj wsatlib.lib
    wcl386 -zq -k10000 sat_id.obj wsatlib.lib
 
-test_out.exe: test_out.obj wsatlib.lib tle_out.obj
-   wcl386 -zq -k10000 test_out.obj wsatlib.lib tle_out.obj
+test_out.exe: test_out.obj wsatlib.lib
+   wcl386 -zq -k10000 test_out.obj wsatlib.lib
 
 #CFLAGS=-W4 -Ox -j -zq -DRETAIN_PERTURBATION_VALUES_AT_EPOCH
 CFLAGS=-W4 -Ox -j -zq
@@ -69,5 +69,12 @@ sdp8.obj:
 
 test_out.obj:
 
-tle_out.obj:
-
+clean:
+   -del *.obj
+   -del *.exe
+   -del *.o
+   -del *.map
+   -del *.lib
+   -del *.exp
+   -del *.dll
+   -del *.a
