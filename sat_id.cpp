@@ -59,8 +59,8 @@ should be used,  and the others are suppressed.       */
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
-#ifdef _WIN32
-   #include <malloc.h>
+#if defined( _WIN32) || defined( __WATCOMC__)
+   #include <malloc.h>     /* for alloca() prototype */
 #endif
 #include "norad.h"
 #include "observe.h"
