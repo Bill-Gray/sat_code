@@ -76,7 +76,7 @@ int main( const int unused_argc, const char **unused_argv)
                      search_radius, (unsigned)bytes_written);
    argv[0] = "sat_id";
    argv[1] = temp_obs_filename;
-   argv[2] = "-ttle_list.txt";
+   argv[2] = "-t../../tles/tle_list.txt";
    sprintf( field, "-r%.2f", search_radius);
    argv[3] = field;
    sprintf( buff, "-y%f", motion_cutoff);
