@@ -13,19 +13,39 @@
    set it up to dump other data that are not immediately obvious
    just by looking at the TLEs... */
 
-int main( int argc, const char **argv)
+int main( const int argc, const char **argv)
 {
    FILE *ifile;
    const char *filename;
    char line1[100], line2[100];
-   int verbose = 0;
+   int i, verbose = 0;
+   const char *norad = NULL, *intl = NULL;
    bool legend_shown = false;
 
-   if( !strcmp( argv[argc - 1], "-v"))
-      {
-      verbose = 1;
-      argc--;
-      }
+   for( i = 2; i < argc; i++)
+      if( argv[i][0] == '-')
+         switch( argv[i][1])
+            {
+            case 'v':
+               verbose = 1;
+               break;
+            case 'n':
+               norad = argv[i] + 2;
+               if( !*norad && i < argc - 1)
+                  norad = argv[++i];
+               printf( "Looking for NORAD %s\n", norad);
+               break;
+            case 'i':
+               intl = argv[i] + 2;
+               if( !*intl && i < argc - 1)
+                  intl = argv[++i];
+               printf( "Looking for international ID %s\n", intl);
+               break;
+            default:
+               printf( "'%s': unrecognized option\n", argv[i]);
+               return( -1);
+               break;
+            }
    filename = (argc == 1 ? "all_tle.txt" : argv[1]);
    ifile = fopen( filename, "rb");
    if( !ifile)
@@ -35,8 +55,9 @@ int main( int argc, const char **argv)
       return( -1);
       }
    while( fgets( line1, sizeof( line1), ifile))
-      if( *line1 == '1' && fgets( line2, sizeof( line2), ifile)
-                  && *line2 == '2')
+      if( *line1 == '1' && (!norad || !memcmp( line1 + 2, norad, 5))
+                        && (!intl || !memcmp( line1 + 9, intl, 5))
+                  && fgets( line2, sizeof( line2), ifile) && *line2 == '2')
          {
          tle_t tle;
 
@@ -45,6 +66,14 @@ int main( int argc, const char **argv)
             char obuff[200];
             double params[N_SGP4_PARAMS], c2;
 
+            if( verbose && !legend_shown)
+               {
+               legend_shown = true;
+               printf(
+  "1 NoradU COSPAR   Epoch.epoch     dn/dt/2  d2n/dt2/6 BSTAR    T El# C\n"
+  "2 NoradU Inclina RAAscNode Eccent  ArgPeri MeanAno  MeanMotion Rev# C\n");
+
+               }
             SGP4_init( params, &tle);
             c2 = params[0];
             if( c2 && tle.xno)
@@ -55,13 +84,6 @@ int main( int argc, const char **argv)
                {
                const double a1 = pow(xke / tle.xno, two_thirds);  /* in Earth radii */
 
-               if( !legend_shown)
-                  {
-                  legend_shown = true;
-                  printf(
-  "1 NoradU COSPAR   Epoch.epoch     dn/dt/2  d2n/dt2/6 BSTAR    T El# C\n"
-  "2 NoradU Inclina RAAscNode Eccent  ArgPeri MeanAno  MeanMotion Rev# C\n");
-                  }
                printf( "   Perigee: %.4f km\n",
                     (a1 * (1. - tle.eo) - 1.) * earth_radius_in_km);
                printf( "   Apogee: %.4f km\n",
@@ -72,7 +94,7 @@ int main( int argc, const char **argv)
                }
             }
          }
-      else
+      else if( !norad && !intl)
          printf( "%s", line1);
    fclose( ifile);
    return( 0);
