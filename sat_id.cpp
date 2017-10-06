@@ -147,6 +147,8 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
                /* Read in the day/month/year from the record... */
    if( sscanf( buff + 15, "%d %d %lf", &year, &month, &day) != 3)
       return( -5);
+   if( year < 1957)
+      return( -6);
    obs->jd = dmy_to_jd( year, month, day);
    strcpy( obs->text, buff);
    return( 0);
