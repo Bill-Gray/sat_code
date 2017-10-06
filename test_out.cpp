@@ -17,7 +17,7 @@ int main( const int argc, const char **argv)
 {
    FILE *ifile;
    const char *filename;
-   char line1[100], line2[100];
+   char line0[100], line1[100], line2[100];
    int i, verbose = 0;
    const char *norad = NULL, *intl = NULL;
    bool legend_shown = false;
@@ -54,10 +54,14 @@ int main( const int argc, const char **argv)
       perror( "");
       return( -1);
       }
-   while( fgets( line1, sizeof( line1), ifile))
+   if( !fgets( line0, sizeof( line0), ifile)
+            || !fgets( line1, sizeof( line1), ifile))
+      perror( "Couldn't read from input file");
+   while( fgets( line2, sizeof( line2), ifile))
+      {
       if( *line1 == '1' && (!norad || !memcmp( line1 + 2, norad, 5))
                         && (!intl || !memcmp( line1 + 9, intl, 5))
-                  && fgets( line2, sizeof( line2), ifile) && *line2 == '2')
+                   && *line2 == '2')
          {
          tle_t tle;
 
@@ -79,6 +83,8 @@ int main( const int argc, const char **argv)
             if( c2 && tle.xno)
                tle.bstar = tle.xndt2o / (tle.xno * c2 * 1.5);
             write_elements_in_tle_format( obuff, &tle);
+            if( strlen( line0) < 60)
+               printf( "%s", line0);
             printf( "%s", obuff);
             if( verbose)
                {
@@ -94,8 +100,9 @@ int main( const int argc, const char **argv)
                }
             }
          }
-      else if( !norad && !intl)
-         printf( "%s", line1);
+      strcpy( line0, line1);
+      strcpy( line1, line2);
+      }
    fclose( ifile);
    return( 0);
 }
