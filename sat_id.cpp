@@ -258,7 +258,8 @@ static int get_station_code_data( char *station_code_data,
 a pass to find out how many observations there are,  allocates space
 for them,  then reads them again to actually load the observations. */
 
-static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found)
+static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
+         const double t_low, const double t_high)
 {
    int pass;
    OBSERVATION *rval = NULL, obs;
@@ -271,7 +272,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found)
 
       fseek( ifile, 0L, SEEK_SET);
       while( fgets_trimmed( buff, sizeof( buff), ifile))
-         if( !get_mpc_data( &obs, buff))
+         if( !get_mpc_data( &obs, buff) && obs.jd > t_low
+                                        && obs.jd < t_high)
             {
             if( rval)
                {
@@ -451,9 +453,14 @@ astrometry as a command-line argument.  It searches for matches between\n\
 the observation data and satellites in 'ALL_TLE.TXT'.  By default,  matches\n\
 within .2 degrees are shown.\n\n\
 Additional command-line arguments are:\n\
-   -r(radius)    Reset search distance from the default of .2 degrees.\n\
-   -t(filename)  Reset the filename of the .tle file.\n\
-   -a            Show all lines from input,  not just those with astrometry.\n");
+   -a YYYYMMDD  Only use observations after this time\n\
+   -b YYYYMMDD  Only use observations before this time\n\
+   -m (nrevs)   Only consider objects with fewer # revs/day (default=6)\n\
+   -n (NORAD)   Only consider objects with this NORAD identifier\n\
+   -r (radius)  Only show matches within this radius in degrees (default=4)\n\
+   -t (fname)   Get TLEs from this filename\n\
+   -v           Verbose output. '-v2' gets still more verboseness.\n\
+   -z (rate)    Only consider observations above 'rate' deg/hr (default=.001)\n");
    exit( exit_code);
 }
 
@@ -692,10 +699,22 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
    return( rval);
 }
 
-
 /* The "on-line version",  sat_id2,  gathers data from a CGI multipart form,
    puts it into a file,  possibly adds in some options,  puts together the
  command-line arguments,  and then calls sat_id_main.  See 'sat_id2.cpp'. */
+
+static double get_time( const char *buff)
+{
+   long year = atol( buff) / 10000L;
+   const long month = (atol( buff) / 100L) % 100L;
+   const int day = atol( buff) % 100L;
+
+   if( year < 40)       /* before 2040 */
+      year += 2000;
+   if( year < 100)       /* 1940-1999 */
+      year += 1900;
+   return( dmy_to_jd( (int)year, (int)month, (double)day));
+}
 
 #ifdef ON_LINE_VERSION
 int sat_id_main( const int argc, const char **argv)
@@ -718,58 +737,74 @@ int main( const int argc, const char **argv)
             artsat.  We don't even bother to check those (unless the -z
             option is used to reset this limit).  */
    double speed_cutoff = 0.001;
+   double t_low = 2435839.5;  /* no satellites before 1957 Jan 1 */
+   double t_high = 3000000.5;
    int rval;
 
    if( argc == 1)
+      {
+      printf( "No input file of astrometry specified on command line\n\n");
       error_exit( -2);
+      }
+
+   for( int i = 1; i < argc; i++)
+      if( argv[i][0] == '-')
+         {
+         const char *param = argv[i] + 2;
+
+         if( !*param && i < argc - 1)
+            param = argv[i + 1];
+         switch( argv[i][1])
+            {
+            case 'a':
+               t_low = get_time( param);
+               break;
+            case 'b':
+               t_high = get_time( param);
+               break;
+            case 'r':
+               search_radius = atof( param);
+               break;
+            case 'y':
+               motion_mismatch_limit = atof( param);
+               break;
+            case 'm':
+               max_revs_per_day = atof( param);
+               break;
+            case 'n':
+               norad_id = atoi( param);
+               break;
+            case 't':
+               tle_file_name = param;
+               break;
+            case 'v':
+               verbose = atoi( param) + 1;
+               break;
+//          case 'd':
+//             debug_level = atoi( param);
+//             break;
+            case 'z':
+               speed_cutoff = atof( param);
+               break;
+            default:
+               printf( "Unrecognized command-line option '%s'\n", argv[i]);
+               error_exit( -3);
+               break;
+            }
+         }
+   if( verbose)
+      for( int i = 0; i < argc; i++)
+         printf( "Arg %d: '%s'\n", i, argv[i]);
 
    if( !ifile)
       {
       printf( "Couldn't open input file %s\n", argv[1]);
       return( -1);
       }
-   obs = get_observations_from_file( ifile, &n_obs);
+   obs = get_observations_from_file( ifile, &n_obs, t_low, t_high);
    fclose( ifile);
    printf( "%d observations found\n", (int)n_obs);
    shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
-   if( verbose)
-      for( int i = 0; i < argc; i++)
-         printf( "Arg %d: '%s'\n", i, argv[i]);
-   for( int i = 1; i < argc; i++)
-      if( argv[i][0] == '-')
-         switch( argv[i][1])
-            {
-            case 'r':
-               search_radius = atof( argv[i] + 2);
-               break;
-            case 'y':
-               motion_mismatch_limit = atof( argv[i] + 2);
-               break;
-            case 'm':
-               max_revs_per_day = atof( argv[i] + 2);
-               break;
-            case 'n':
-               norad_id = atoi( argv[i] + 2);
-               break;
-            case 't':
-               tle_file_name = argv[i] + 2;
-               if( !*tle_file_name && i < argc - 1)
-                  tle_file_name = argv[i + 1];
-               break;
-            case 'v':
-               verbose = atoi( argv[i] + 2) + 1;
-               break;
-//          case 'd':
-//             debug_level = atoi( argv[i] + 2);
-//             break;
-            case 'z':
-               speed_cutoff = atof( argv[i] + 2);
-               break;
-            default:
-               printf( "Unrecognized command-line option '%s'\n", argv[i]);
-               exit( -2);
-               break;
-            }
    n_obs = drop_extra_obs( obs, n_obs, speed_cutoff);
    printf( "%d observations left after dropping extras\n", (int)n_obs);
    if( !obs || !n_obs)
