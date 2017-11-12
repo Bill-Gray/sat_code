@@ -621,7 +621,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                                "e=%.2f; P=%.1f min; i=%.1f",
                                tle.eo, 2. * PI / tle.xno,
                                tle.xincl * 180. / PI);
-                     if( strlen( line0) < 30)         /* object name given... */
+                     if( tle_checksum( line0))         /* object name given... */
                         sprintf( obuff + strlen( obuff), ": %s", line0);
                      obuff[79] = '\0';    /* avoid buffer overrun */
 //                   sprintf( obuff + strlen( obuff), " motion %f", motion_diff);
