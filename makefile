@@ -1,3 +1,21 @@
+# GNU MAKE Makefile for artsat code and utilities
+#
+# Usage: make [CLANG=Y] [XCOMPILE=Y] [MSWIN=Y] [tgt]
+#
+#	where tgt can be any of:
+# [all|get_high|mergetle|obs_tes2|...]
+#
+# ...see below for complete list.  Note that you have to 'make tle_date' and/or
+# 'make tle_date.cgi' separately;  they have a dependency on the 'lunar'
+# library (also on my GitHub site).
+#
+#	'XCOMPILE' = cross-compile for Windows,  using MinGW,  on a Linux box
+#	'MSWIN' = compile for Windows,  using MinGW and PDCurses,  on a Windows machine
+#	'CLANG' = use clang instead of GCC;  Linux and BSD only
+#    (I've used gmake CLANG=Y on PC-BSD;  probably works on OS/X too)
+# None of these: compile using g++ on Linux,  for Linux
+#
+
 CC=g++
 EXE=
 RM=rm -f
@@ -17,9 +35,12 @@ else
 	MKDIR=mkdir -p
 endif
 
+LIBSADDED=-L $(INSTALL_DIR)/lib
+
 ifdef XCOMPILE
 	CC=x86_64-w64-mingw32-g++
 	EXE=.exe
+	LIBSADDED=-L $(INSTALL_DIR)/win_lib
 endif
 
 # You can have your include files in ~/include and libraries in
@@ -49,6 +70,8 @@ clean:
 	$(RM) sat_id$(EXE)
 	$(RM) sat_id2$(EXE)
 	$(RM) test2$(EXE)
+	$(RM) tle_date$(EXE)
+	$(RM) tle_date.cgi
 	$(RM) test_out$(EXE)
 	$(RM) test_sat$(EXE)
 
@@ -93,6 +116,15 @@ sat_id2$(EXE):	 	sat_id2.o sat_id.cpp observe.o  ../find_orb/cgi_func.cpp libsat
 
 test2$(EXE):	 	test2.o sgp.o libsatell.a
 	$(CC) $(CFLAGS) -o test2$(EXE) test2.o sgp.o libsatell.a -lm
+
+tle_date$(EXE):	 	tle_date.o
+	$(CC) $(CFLAGS) -o tle_date$(EXE) tle_date.o $(LIBSADDED) -llunar
+
+tle_date.o: tle_date.c
+	$(CC) $(CFLAGS) -o tle_date.o -c -I../include tle_date.c
+
+tle_date.cgi:	 	tle_date.c ../find_orb/cgi_func.cpp
+	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c ../find_orb/cgi_func.cpp $(LIBSADDED) -llunar
 
 test_out$(EXE):	 test_out.o tle_out.o get_el.o sgp4.o common.o
 	$(CC) $(CFLAGS) -o test_out$(EXE) test_out.o tle_out.o get_el.o sgp4.o common.o -lm

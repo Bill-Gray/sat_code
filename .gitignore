@@ -26,6 +26,7 @@
 *.exe
 *.out
 *.app
+*.cgi
 get_high
 mergetle
 obs_test
@@ -36,3 +37,4 @@ sat_id2
 test2
 test_out
 test_sat
+tle_date
