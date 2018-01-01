@@ -111,8 +111,8 @@ libsatell.a: $(OBJS)
 sat_id$(EXE):	 	sat_id.o	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_id$(EXE) sat_id.o observe.o libsatell.a -lm
 
-sat_id2$(EXE):	 	sat_id2.o sat_id.cpp observe.o  ../find_orb/cgi_func.cpp libsatell.a
-	$(CC) $(CFLAGS) -o sat_id2$(EXE) -DON_LINE_VERSION sat_id2.o sat_id.cpp observe.o ../find_orb/cgi_func.cpp libsatell.a -lm
+sat_id2$(EXE):	 	sat_id2.o sat_id.cpp observe.o  libsatell.a
+	$(CC) $(CFLAGS) -o sat_id2$(EXE) -DON_LINE_VERSION sat_id2.o sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
 
 test2$(EXE):	 	test2.o sgp.o libsatell.a
 	$(CC) $(CFLAGS) -o test2$(EXE) test2.o sgp.o libsatell.a -lm
@@ -123,8 +123,8 @@ tle_date$(EXE):	 	tle_date.o
 tle_date.o: tle_date.c
 	$(CC) $(CFLAGS) -o tle_date.o -c -I../include tle_date.c
 
-tle_date.cgi:	 	tle_date.c ../find_orb/cgi_func.cpp
-	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c ../find_orb/cgi_func.cpp $(LIBSADDED) -llunar
+tle_date.cgi:	 	tle_date.c
+	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c $(LIBSADDED) -llunar
 
 test_out$(EXE):	 test_out.o tle_out.o get_el.o sgp4.o common.o
 	$(CC) $(CFLAGS) -o test_out$(EXE) test_out.o tle_out.o get_el.o sgp4.o common.o -lm
