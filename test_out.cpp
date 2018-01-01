@@ -4,6 +4,9 @@
 #include "norad.h"
 #include "norad_in.h"
 
+#define PI \
+   3.1415926535897932384626433832795028841971693993751058209749445923
+
 /* Example code to add BSTAR data using Ted Molczan's method.  It just
    reads in TLEs,  computes BSTAR if possible,  then writes out the
    resulting modified TLE.
@@ -90,12 +93,19 @@ int main( const int argc, const char **argv)
                {
                const double a1 = pow(xke / tle.xno, two_thirds);  /* in Earth radii */
 
+               printf( "Inclination: %8.4f     ", tle.xincl * 180. / PI);
                printf( "   Perigee: %.4f km\n",
                     (a1 * (1. - tle.eo) - 1.) * earth_radius_in_km);
+
+               printf( "Asc node:    %8.4f     ", tle.xnodeo * 180. / PI);
                printf( "   Apogee: %.4f km\n",
                     (a1 * (1. + tle.eo) - 1.) * earth_radius_in_km);
+
+               printf( "Arg perigee: %8.4f     ", tle.omegao * 180. / PI);
                printf( "   Orbital period: %.4f min\n",
                     2. * pi / tle.xno);
+
+               printf( "Mean anom:   %8.4f     ", tle.xmo * 180. / PI);
                printf( "   Epoch: JD %.5f\n", tle.epoch);
                }
             }
