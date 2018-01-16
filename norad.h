@@ -22,6 +22,7 @@ typedef struct
 
    /* NOTE: xndt2o and xndt6o are used only in the "classic" SGP, */
    /* not in SxP4 or SxP8. */
+   /* epoch is a Julian Day,  UTC */
    /* xmo = mean anomaly at epoch,  radians */
    /* xno = mean motion at epoch,  radians/minute*/
 
@@ -73,6 +74,7 @@ reasonable position/velocity was determined.       */
 #define SXPX_WARN_ORBIT_WITHIN_EARTH      -3
 #define SXPX_WARN_PERIGEE_WITHIN_EARTH    -4
 #define SXPX_ERR_NEGATIVE_XN              -5
+#define SXPX_ERR_CONVERGENCE_FAIL         -6
 
 /* Function prototypes */
 /* norad.c */

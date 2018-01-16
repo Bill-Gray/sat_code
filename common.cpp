@@ -109,6 +109,8 @@ inline double centralize_angle( const double ival)
    return( rval);
 }
 
+#define MAX_KEPLER_ITER 10
+
 int sxpx_posn_vel( const double xnode, const double a, const double ecc,
       const double cosio, const double sinio,
       const double xincl, const double omega,
@@ -155,22 +157,20 @@ int sxpx_posn_vel( const double xnode, const double a, const double ecc,
       rval = SXPX_ERR_NEGATIVE_MAJOR_AXIS;
    if( elsq > 1. - chicken_factor_on_eccentricity)
       rval = SXPX_ERR_NEARLY_PARABOLIC;
-   if( rval)
+   for( i = 0; i < 3; i++)
       {
-      for( i = 0; i < 3; i++)
-         {
-         pos[i] = 0.;
-         if( vel)
-            vel[i] = 0.;
-         }
-      return( rval);
+      pos[i] = 0.;
+      if( vel)
+         vel[i] = 0.;
       }
+   if( rval)
+      return( rval);
    if( a * (1. - ecc) < 1. && a * (1. + ecc) < 1.)   /* entirely within earth */
       rval = SXPX_WARN_ORBIT_WITHIN_EARTH;     /* remember, e can be negative */
    if( a * (1. - ecc) < 1. || a * (1. + ecc) < 1.)   /* perigee within earth */
       rval = SXPX_WARN_PERIGEE_WITHIN_EARTH;
   /* Solve Kepler's' Equation */
-   for( i = 0; i < 10; i++)
+   for( i = 0; i < MAX_KEPLER_ITER; i++)
       {
       const double newton_raphson_epsilon = 1e-12;
       double f, fdot, delta_epw;
@@ -201,7 +201,9 @@ int sxpx_posn_vel( const double xnode, const double a, const double ecc,
                              /* f/(fdot - 0.5*fdotdot * f / fdot) */
       epw += delta_epw;
       }
-   assert( i < 8);     /* convergence should _always_ occur */
+
+   if( i == MAX_KEPLER_ITER)
+      return( SXPX_ERR_CONVERGENCE_FAIL);
 
   /* Short period preliminary quantities */
    temp = 1-elsq;
