@@ -199,6 +199,7 @@ int main( const int argc, const char **argv)
          n_found += n;
          fclose( ifile);
          }
+   free( already_found);
    if( strip_names)
       for( i = 0; i < n_found; i++)
          tles[i].name_line[0] = '\0';
