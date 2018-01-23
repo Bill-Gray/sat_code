@@ -432,6 +432,7 @@ static inline void compute_dpsec_derivs( const deep_arg_t *deep_arg,
    const double cos_2li = 2. * cos_li * cos_li - 1.;
    int i;
 
+   derivs[0] = 0.;
                 /* Dot terms calculated,  using a lot of trig add/subtract */
                 /* identities to reduce the computational load... at the   */
                 /* cost of making the code somewhat hard to follow:        */

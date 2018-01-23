@@ -289,7 +289,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                }
             count++;
             }
-      if( !pass)
+      if( !pass && count)
          rval = (OBSERVATION *)calloc( count, sizeof( OBSERVATION));
       *n_found = count;
       }
@@ -575,7 +575,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                   const double dt = optr[1].jd - optr[0].jd;
                   double motion_diff;
 
-                  sxpx_rval = compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
+                  compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
                               optr + 1, &tle, sat_params);
                   compute_offsets( &dx1, &dy1, ra - optr[1].ra, dec, optr[1].dec);
                   dx1 -= dx;
