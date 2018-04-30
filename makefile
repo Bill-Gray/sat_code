@@ -54,6 +54,8 @@ else
 	INSTALL_DIR=~
 endif
 
+INCL=$(INSTALL_DIR)/include
+
 all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
 	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE)
 
@@ -111,8 +113,8 @@ libsatell.a: $(OBJS)
 sat_id$(EXE):	 	sat_id.o	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_id$(EXE) sat_id.o observe.o libsatell.a -lm
 
-sat_id2$(EXE):	 	sat_id2.o sat_id.cpp observe.o  libsatell.a
-	$(CC) $(CFLAGS) -o sat_id2$(EXE) -DON_LINE_VERSION sat_id2.o sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
+sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp observe.o  libsatell.a
+	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
 
 test2$(EXE):	 	test2.o sgp.o libsatell.a
 	$(CC) $(CFLAGS) -o test2$(EXE) test2.o sgp.o libsatell.a -lm

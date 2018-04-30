@@ -18,11 +18,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "cgi_func.h"
 
 int sat_id_main( const int argc, const char **argv);
-void avoid_runaway_process( const int max_time_to_run);   /* cgi_func.c */
-int get_multipart_form_data( const char *boundary, char *field,
-                char *buff, char *filename, const size_t max_len);
 
 int main( const int unused_argc, const char **unused_argv)
 {
