@@ -306,6 +306,10 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                }
             count++;
             }
+         else if( !strcmp( buff, "COM ignore obs"))
+            while( fgets_trimmed( buff, sizeof( buff), ifile))
+               if( !strcmp( buff, "COM end ignore obs"))
+                  break;
       if( !pass && count)
          rval = (OBSERVATION *)calloc( count, sizeof( OBSERVATION));
       *n_found = count;
@@ -496,8 +500,11 @@ static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
       sxpx_rval = SDP4( t_since, tle, sat_params, pos, NULL);
    else
       sxpx_rval = SGP4( t_since, tle, sat_params, pos, NULL);
+
+   if( sxpx_rval == SXPX_WARN_PERIGEE_WITHIN_EARTH)
+      sxpx_rval = 0;
    if( verbose > 2 && sxpx_rval)
-      printf( "TLE failed: %d\n", sxpx_rval);
+      printf( "TLE failed for JD %f: %d\n", optr->jd, sxpx_rval);
    get_satellite_ra_dec_delta( observer_loc, pos, ra, dec, dist);
    return( sxpx_rval);
 }
