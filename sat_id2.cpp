@@ -18,7 +18,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "cgi_func.h"
+#ifdef __has_include
+   #if __has_include(<cgi_func.h>)
+       #include "cgi_func.h"
+   #else
+       #error   \
+         'cgi_func.h' not found.  This project depends on the 'lunar'\
+         library.  See www.github.com/Bill-Gray/lunar .\
+         Clone that repository,  'make'  and 'make install' it.
+   #endif
+#else
+   #include "cgi_func.h"
+#endif
 
 int sat_id_main( const int argc, const char **argv);
 
