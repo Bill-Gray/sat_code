@@ -1,4 +1,8 @@
-/* Copyright (C) 2018, Project Pluto
+/* MOSTLY OBSOLETE.  See 'eph2tle.cpp' in the Find_Orb project
+(https://github.com/Bill-Gray/find_orb) for a considerably better
+approach to computing TLEs from orbital data.
+
+Copyright (C) 2018, Project Pluto
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
