@@ -81,6 +81,7 @@ should be used,  and the others are suppressed.       */
 #endif
 #include "norad.h"
 #include "observe.h"
+#include "mpc_func.h"
 
 #ifdef FRENCH_REPUBLICAN_CLOCK
    #define  hours_per_day      10
@@ -144,29 +145,12 @@ static double dmy_to_jd( const int year, const int month, const double day)
 
 static int get_mpc_data( OBSERVATION *obs, const char *buff)
 {
-   int i1, i2, year, month;
-   double tval, day;
-
    if( strlen( buff) != 80)
       return( -1);
-   if( sscanf( buff + 32, "%d %d %lf", &i1, &i2, &tval) != 3)
-      return( -2);
-   obs->ra = ((double)i1 + (double)i2 / 60. + tval / 3600.) * (PI / 12.);
 
-   if( sscanf( buff + 45, "%d %d %lf", &i1, &i2, &tval) != 3)
-      return( -3);
-   obs->dec = ((double)i1 + (double)i2 / 60. + tval / 3600.) * (PI / 180.);
-   if( buff[44] == '-')
-      obs->dec = -obs->dec;
-   else if( buff[44] != '+')
-      return( -4);
-
-               /* Read in the day/month/year from the record... */
-   if( sscanf( buff + 15, "%d %d %lf", &year, &month, &day) != 3)
-      return( -5);
-   if( year < 1957)
-      return( -6);
-   obs->jd = dmy_to_jd( year, month, day);
+   obs->jd = extract_date_from_mpc_report( buff, NULL);
+   get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
+                                     NULL, &obs->dec, NULL);
    strcpy( obs->text, buff);
    return( 0);
 }

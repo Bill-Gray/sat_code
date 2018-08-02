@@ -110,8 +110,8 @@ libsatell.a: $(OBJS)
 	rm -f libsatell.a
 	ar rv libsatell.a $(OBJS)
 
-sat_id$(EXE):	 	sat_id.o	observe.o libsatell.a
-	$(CC) $(CFLAGS) -o sat_id$(EXE) sat_id.o observe.o libsatell.a -lm
+sat_id$(EXE):	 	sat_id.cpp	observe.o libsatell.a
+	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
 
 sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp observe.o  libsatell.a
 	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
