@@ -84,6 +84,7 @@ should be used,  and the others are suppressed.       */
 #include "watdefs.h"
 #include "mpc_func.h"
 #include "afuncs.h"
+#include "date.h"
 
 #define OBSERVATION struct observation
 
@@ -699,19 +700,6 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
    puts it into a file,  possibly adds in some options,  puts together the
  command-line arguments,  and then calls sat_id_main.  See 'sat_id2.cpp'. */
 
-static double get_time( const char *buff)
-{
-   long year = atol( buff) / 10000L;
-   const long month = (atol( buff) / 100L) % 100L;
-   const int day = atol( buff) % 100L;
-
-   if( year < 40)       /* before 2040 */
-      year += 2000;
-   if( year < 100)       /* 1940-1999 */
-      year += 1900;
-   return( dmy_to_jd( (int)year, (int)month, (double)day));
-}
-
 #ifdef ON_LINE_VERSION
 int sat_id_main( const int argc, const char **argv)
 #else
@@ -753,10 +741,10 @@ int main( const int argc, const char **argv)
          switch( argv[i][1])
             {
             case 'a':
-               t_low = get_time( param);
+               t_low = get_time_from_string( 0, param, FULL_CTIME_YMD, NULL);
                break;
             case 'b':
-               t_high = get_time( param);
+               t_high = get_time_from_string( 0, param, FULL_CTIME_YMD, NULL);
                break;
             case 'r':
                search_radius = atof( param);
