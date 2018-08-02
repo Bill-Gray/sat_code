@@ -25,7 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 extern "C" {
 #endif
 
-void DLL_FUNC lat_alt_to_parallax( const double lat, const double ht_in_meters,
+void DLL_FUNC earth_lat_alt_to_parallax( const double lat,
+                    const double ht_in_meters,
                     double *rho_cos_phi, double *rho_sin_phi);
 void DLL_FUNC observer_cartesian_coords( const double jd, const double lon,
               const double rho_cos_phi, const double rho_sin_phi,

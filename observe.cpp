@@ -62,7 +62,8 @@ void DLL_FUNC observer_cartesian_coords( const double jd, const double lon,
    *vect++ = rho_sin_phi               * EARTH_MAJOR_AXIS / 1000.;
 }
 
-void DLL_FUNC lat_alt_to_parallax( const double lat, const double ht_in_meters,
+void DLL_FUNC earth_lat_alt_to_parallax( const double lat,
+                    const double ht_in_meters,
                     double *rho_cos_phi, double *rho_sin_phi)
 {
    const double u = atan( sin( lat) * EARTH_AXIS_RATIO / cos( lat));

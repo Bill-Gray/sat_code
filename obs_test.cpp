@@ -89,7 +89,8 @@ int main( const int argc, const char **argv)
 
             if( err_val)
                printf( "WARNING: TLE parsing error %d\n", err_val);
-            lat_alt_to_parallax( lat, ht_in_meters, &rho_cos_phi, &rho_sin_phi);
+            earth_lat_alt_to_parallax( lat, ht_in_meters, &rho_cos_phi,
+                                                          &rho_sin_phi);
             observer_cartesian_coords( jd, lon, rho_cos_phi, rho_sin_phi,
                         observer_loc);
             if( is_deep && (ephem == 1 || ephem == 2))

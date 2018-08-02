@@ -98,7 +98,8 @@ int main( const int argc, const char **argv)
 
             /* Figure out where the observer _really_ is,  in Cartesian */
             /* coordinates of date: */
-   lat_alt_to_parallax( lat * PI / 180., ht_in_meters, &rho_cos_phi, &rho_sin_phi);
+   earth_lat_alt_to_parallax( lat * PI / 180., ht_in_meters, &rho_cos_phi,
+                                                             &rho_sin_phi);
    observer_cartesian_coords( jd,
                 lon * PI / 180., rho_cos_phi, rho_sin_phi, observer_loc);
    observer_cartesian_coords( jd + TIME_EPSILON,
