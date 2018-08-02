@@ -289,41 +289,41 @@ static int compare_obs( const void *a, const void *b, void *context)
 
 /* Copied straight from 'mpc_obs.cpp' in Find_Orb.  See comments there. */
 
-void shellsort_r( void *base, const size_t n_elements, const size_t esize,
+void shellsort_r( void *base, const size_t n_elements, const size_t elem_size,
          int (*compare)(const void *, const void *, void *), void *context)
 {
 #if (defined _GNU_SOURCE || defined __GNU__ || defined __linux)
-   qsort_r( base, n_elements, esize, compare, context);
+   qsort_r( base, n_elements, elem_size, compare, context);
 #else
-   size_t gap = 1;
+   size_t gap = 250104703;
    char *data = (char *)base;
-   char *pivot = (char *)alloca( esize);
+   char *pivot = (char *)alloca( elem_size);
 
    while( gap < n_elements)
-      gap = gap * 3 + 1;
-   while( gap /= 3)
+      gap = gap * 8 / 3 + 1;
+   while( (gap = gap * 3 / 8) != 0)
       {
       size_t j;
-      const size_t spacing = esize * gap;
+      const size_t spacing = elem_size * gap;
 
       for( j = gap; j < n_elements; j++)
          {
-         char *tptr = data + j * esize;
+         char *tptr = data + j * elem_size;
          char *tptr2 = tptr - spacing;
 
          if( (compare)( tptr2, tptr, context) > 0)
             {
-            memcpy( pivot, tptr, esize);
-            memcpy( tptr, tptr2, esize);
+            memcpy( pivot, tptr, elem_size);
+            memcpy( tptr, tptr2, elem_size);
             tptr = tptr2;
             tptr2 -= spacing;
             while( tptr2 >= base && (compare)( tptr2, pivot, context) > 0)
                {
-               memcpy( tptr, tptr2, esize);
+               memcpy( tptr, tptr2, elem_size);
                tptr = tptr2;
                tptr2 -= spacing;
                }
-            memcpy( tptr, pivot, esize);
+            memcpy( tptr, pivot, elem_size);
             }
          }
       }
