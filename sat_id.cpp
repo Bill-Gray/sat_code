@@ -113,25 +113,6 @@ static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
    return( rval);
 }
 
-static double dmy_to_jd( const int year, const int month, const double day)
-{
-   double rval = 1721059.5
-         + (double)( year * 365 + year / 4 - year / 100 + year / 400) + day;
-   int i;
-   static const char month_len[12] = { 31, 28, 31, 30, 31, 30,
-                                       31, 31, 30, 31, 30, 31 };
-
-   assert( month >= 1 && month <= 12);
-   assert( day >= 1. && day < 32.);
-   assert( year > 1956 && year < 2050);
-   for( i = 0; i < month - 1; i++)
-      rval += (double)month_len[i];
-   if( month < 3 && !(year % 4))    /* leap years,  January and February */
-      if( !(year % 400) || (year % 100))
-         rval--;
-   return( rval);
-}
-
 static int get_mpc_data( OBSERVATION *obs, const char *buff)
 {
    if( strlen( buff) != 80)
@@ -657,16 +638,13 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
          }
       else if( !memcmp( line2, "# Range: ", 9))
          {
-         int year1, year2, month1, month2;
-         double day1, day2;
          int n_read;
+         char start[20], end[20];
 
-         n_read = sscanf( line2 + 9, "%d-%d-%lf %d-%d-%lf",
-                     &year1, &month1, &day1,
-                     &year2, &month2, &day2);
-         assert( n_read == 6);
-         tle_start = dmy_to_jd( year1, month1, day1);
-         tle_range = dmy_to_jd( year2, month2, day2) - tle_start;
+         n_read = sscanf( line2 + 9, "%19s %19s", start, end);
+         assert( n_read == 2);
+         tle_start = get_time_from_string( 0, start, FULL_CTIME_YMD, NULL);
+         tle_range = get_time_from_string( 0, end, FULL_CTIME_YMD, NULL) - tle_start;
          }
       else if( !memcmp( line2, "# MJD ", 6))
          tle_start = atof( line2 + 6) + 2400000.5;
