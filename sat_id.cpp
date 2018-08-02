@@ -81,21 +81,9 @@ should be used,  and the others are suppressed.       */
 #endif
 #include "norad.h"
 #include "observe.h"
+#include "watdefs.h"
 #include "mpc_func.h"
-
-#ifdef FRENCH_REPUBLICAN_CLOCK
-   #define  hours_per_day      10
-   #define minutes_per_hour   100
-   #define seconds_per_minute 100
-#else
-   #define hours_per_day       24
-   #define minutes_per_hour    60
-   #define seconds_per_minute  60
-#endif
-
-#define seconds_per_hour   (seconds_per_minute * minutes_per_hour)
-#define seconds_per_day    (seconds_per_hour * hours_per_day)
-#define minutes_per_day    (minutes_per_hour * hours_per_day)
+#include "afuncs.h"
 
 #define OBSERVATION struct observation
 
