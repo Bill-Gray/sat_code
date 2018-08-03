@@ -115,10 +115,9 @@ static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
 
 static int get_mpc_data( OBSERVATION *obs, const char *buff)
 {
-   if( strlen( buff) != 80)
-      return( -1);
-
    obs->jd = extract_date_from_mpc_report( buff, NULL);
+   if( !obs->jd)           /* not an 80-column MPC record */
+      return( -1);
    get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
                                      NULL, &obs->dec, NULL);
    strcpy( obs->text, buff);
@@ -234,15 +233,17 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
 {
    int pass;
    OBSERVATION *rval = NULL, obs;
+   void *ades_context = init_ades2mpc( );
 
+   assert( ades_context);
    memset( &obs, 0, sizeof( OBSERVATION));
    for( pass = 0; pass < 2; pass++)
       {
-      char buff[100];
+      char buff[400];
       size_t count = 0;
 
       fseek( ifile, 0L, SEEK_SET);
-      while( fgets_trimmed( buff, sizeof( buff), ifile))
+      while( fgets_with_ades_xlation( buff, sizeof( buff), ades_context, ifile))
          if( !get_mpc_data( &obs, buff) && obs.jd > t_low
                                         && obs.jd < t_high)
             {
@@ -268,6 +269,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          rval = (OBSERVATION *)calloc( count, sizeof( OBSERVATION));
       *n_found = count;
       }
+   free_ades2mpc_context( ades_context);
    return( rval);
 }
 
