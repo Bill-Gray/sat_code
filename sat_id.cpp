@@ -79,6 +79,17 @@ should be used,  and the others are suppressed.       */
 #if defined( _WIN32) || defined( __WATCOMC__)
    #include <malloc.h>     /* for alloca() prototype */
 #endif
+
+#if defined( __has_include) && !__has_include(<watdefs.h>)
+   #error   \
+        "You need the 'lunar' library (https://www.github.com/Bill-Gray/lunar).\
+ See https://github.com/Bill-Gray/sat_code/issues/2 for a fix to this."
+            /* This would normally be followed by dozens of errors.  GCC, */
+            /* at least,  stops completely when it can't find a system */
+            /* include file.  */
+   #include <stop_cascading_errors>
+#endif
+
 #include "norad.h"
 #include "observe.h"
 #include "watdefs.h"
