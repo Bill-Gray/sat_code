@@ -105,7 +105,7 @@ OBSERVATION
    char text[81];
    double jd, ra, dec;
    double lon, rho_cos_phi, rho_sin_phi;
-   short matches[MAX_MATCHES];
+   int matches[MAX_MATCHES];
    };
 
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
@@ -563,7 +563,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                compute_offsets( &dx, &dy, ra - optr->ra, dec, optr->dec);
                radius = sqrt( dx * dx + dy * dy) * 180. / PI;
                while( n_matches < MAX_MATCHES - 1
-                       && optr->matches[n_matches] != (short)tle.norad_number)
+                       && optr->matches[n_matches] != tle.norad_number
+                       && optr->matches[n_matches])
                   n_matches++;
                if( !sxpx_rval && radius < search_radius      /* good enough for us! */
                        && !optr->matches[n_matches])
@@ -609,7 +610,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
-                     optr->matches[n_matches] = (short)tle.norad_number;
+                     optr->matches[n_matches] = tle.norad_number;
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
