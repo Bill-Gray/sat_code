@@ -80,14 +80,16 @@ should be used,  and the others are suppressed.       */
    #include <malloc.h>     /* for alloca() prototype */
 #endif
 
-#if defined( __has_include) && !__has_include(<watdefs.h>)
-   #error   \
+#if defined( __has_include)
+   #if !__has_include(<watdefs.h>)
+      #error   \
         "You need the 'lunar' library (https://www.github.com/Bill-Gray/lunar).\
  See https://github.com/Bill-Gray/sat_code/issues/2 for a fix to this."
             /* This would normally be followed by dozens of errors.  GCC, */
             /* at least,  stops completely when it can't find a system */
             /* include file.  */
-   #include <stop_cascading_errors>
+      #include <stop_cascading_errors>
+   #endif
 #endif
 
 #include "norad.h"
