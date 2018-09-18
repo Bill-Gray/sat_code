@@ -725,6 +725,7 @@ int main( const int argc, const char **argv)
    double t_low = 2435839.5;  /* no satellites before 1957 Jan 1 */
    double t_high = 3000000.5;
    int rval;
+   bool show_summary = false;
 
    if( argc == 1)
       {
@@ -762,6 +763,9 @@ int main( const int argc, const char **argv)
             case 't':
                tle_file_name = param;
                break;
+            case 'u':
+               show_summary = true;
+               break;
             case 'v':
                verbose = atoi( param) + 1;
                break;
@@ -797,9 +801,16 @@ int main( const int argc, const char **argv)
 
    rval = add_tle_to_obs( obs, n_obs, tle_file_name, search_radius,
                                     max_revs_per_day);
+   if( show_summary)
+      for( size_t i = 0; i < n_obs; i += 2)
+         {
+         printf( "\n%.12s ", obs[i].text);
+         for( size_t j = 0; obs[i].matches[j]; j++)
+            printf( " %05d", obs[i].matches[j]);
+         }
    free( obs);
    get_station_code_data( NULL, NULL);
-   printf( "%.1f seconds elapsed\n", (double)clock( ) / (double)CLOCKS_PER_SEC);
+   printf( "\n%.1f seconds elapsed\n", (double)clock( ) / (double)CLOCKS_PER_SEC);
    return( rval);
 }     /* End of main() */
 
