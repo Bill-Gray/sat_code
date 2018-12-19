@@ -123,6 +123,12 @@ int tle_compare( const TLE *tle1, const TLE *tle2, const char sort_method)
          for( i = 18; !rval && i < 32; i++)
             rval = tle1->line1[i] - tle2->line1[i];
          break;
+      case 'i': case 'I':        /* sort by incl */
+         rval = compare_doubles( tle1->line2 + 8, tle2->line2 + 8);
+         break;
+      case 'o': case 'O':        /* sort by ascending node */
+         rval = compare_doubles( tle1->line2 + 17, tle2->line2 + 17);
+         break;
       }
    if( sort_method >= 'A' && sort_method <= 'Z')
       rval = -rval;
@@ -164,6 +170,8 @@ static void error_exit( void)
    printf( "-sm, -sM       Sort output by ascending/descending mean motion\n");
    printf( "-se, -sE       Sort output by ascending/descending eccentricity\n");
    printf( "-sp, -sP       Sort output by ascending/descending epoch\n");
+   printf( "-si, -sI       Sort output by ascending/descending inclination\n");
+   printf( "-so, -sO       Sort output by ascending/descending ascending node\n");
    printf( "-o(filename)   Set name of output .tle file (default is out.tle)\n");
    printf( "-n             Remove names from input TLEs\n");
    printf( "-h             Remove HTML tags from input.  This allows you to extract\n");
