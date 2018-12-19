@@ -57,13 +57,14 @@ endif
 INCL=$(INSTALL_DIR)/include
 
 all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
-	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE)
+	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) dropouts$(EXE)
 
 CFLAGS=-Wextra -Wall -O3 -pedantic -Wno-unused-parameter
 
 clean:
 	$(RM) *.o
 	$(RM) get_high$(EXE)
+	$(RM) dropouts$(EXE)
 	$(RM) mergetle$(EXE)
 	$(RM) obs_tes2$(EXE)
 	$(RM) obs_test$(EXE)
@@ -96,6 +97,9 @@ get_high$(EXE):	 get_high.o get_el.o
 
 mergetle$(EXE):	 mergetle.o
 	$(CC) $(CFLAGS) -o mergetle$(EXE) mergetle.o
+
+dropouts$(EXE):	 dropouts.o
+	$(CC) $(CFLAGS) -o dropouts$(EXE) dropouts.o
 
 obs_tes2$(EXE):	 obs_tes2.o observe.o libsatell.a
 	$(CC) $(CFLAGS) -o obs_tes2$(EXE) obs_tes2.o observe.o libsatell.a -lm
