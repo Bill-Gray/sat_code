@@ -29,6 +29,7 @@ int main( const int argc, const char **argv)
             if( sats[i][0] == buff[9] && !memcmp( sats[i], buff + 9, 7))
                sats[i] = "";
    fclose( ifile);
+   printf( "This should list 2002-048A INTEGRAL and 1983-020D,  and nothing else.\n");
    for( i = 0; sats[i]; i++)
       if( sats[i][0])
          printf( "%s\n", sats[i]);
