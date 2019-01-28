@@ -74,10 +74,8 @@ int main( const int argc, const char **argv)
       perror( "");
       return( -1);
       }
-   if( !fgets( line0, sizeof( line0), ifile)
-            || !fgets( line1, sizeof( line1), ifile))
-      perror( "Couldn't read from input file");
-   else while( fgets( line2, sizeof( line2), ifile))
+   *line0 = *line1 = '\0';
+   while( fgets( line2, sizeof( line2), ifile))
       {
       if( *line1 == '1' && (!norad || !memcmp( line1 + 2, norad, 5))
                         && (!intl || !memcmp( line1 + 9, intl, 5))
