@@ -304,7 +304,7 @@ static int compare_obs( const void *a, const void *b, void *context)
    return( rval);
 }
 
-/* Copied straight from 'mpc_obs.cpp' in Find_Orb.  See comments there. */
+/* Copied straight from 'shellsor.cpp' in Find_Orb.  See comments there. */
 
 void shellsort_r( void *base, const size_t n_elements, const size_t elem_size,
          int (*compare)(const void *, const void *, void *), void *context)
@@ -513,6 +513,14 @@ int norad_id = 0;
 
 double tle_start = 0., tle_range = 1e+9;
 
+/* The following may be reset for a particular object where we have TLEs
+that we expect have a certain maximum expected error,  using a line
+starting with # Max error.  This lets us use a large search radius for
+some objects with poor TLEs,  but restrict the radius tightly for objects
+that we know we have a good handle on.  */
+
+static double max_expected_error = 180.;
+
 static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
              const char *tle_file_name, const double search_radius,
              const double max_revs_per_day)
@@ -569,6 +577,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                        && optr->matches[n_matches])
                   n_matches++;
                if( !sxpx_rval && radius < search_radius      /* good enough for us! */
+                       && radius < max_expected_error
                        && !optr->matches[n_matches])
                   {
                   double dx1, dy1;
@@ -628,7 +637,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
 //                   sprintf( obuff + strlen( obuff), " motion %f", motion_diff);
                      strcat( obuff, "\n");
                      sprintf( obuff + strlen( obuff),
-                        "             motion %5.2f\"/sec at PA %.1f; dist=%8.1f km; offset=%5.2f deg\n",
+                        "             motion %5.2f\"/sec at PA %.1f; dist=%8.1f km; offset=%6.3f deg\n",
                             motion_rate, motion_pa,
                             dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
@@ -641,6 +650,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
          }
       else if( !memcmp( line2, "# No updates", 12))
          check_updates = false;
+      else if( !memcmp( line2, "# Max error",  11))
+         max_expected_error = atof( line2 + 12);
       else if( !memcmp( line2, "# Ephem range:", 14))
          {
          const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
