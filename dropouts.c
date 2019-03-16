@@ -14,7 +14,7 @@ int main( const int argc, const char **argv)
    static const char *sats[] = {
           "00041B ", "00045A ", "00045B ", "02048A ", "07004D ",
           "07004E ", "07004G ", "15011A ", "15011B ",
-          "15011C ", "15011D ", "16031B ", "67040F ", "69046F ",
+          "15011C ", "15011D ", "67040F ", "69046F ",
           "77093E ", "83020A ", "83020D ", "99040B ",
           "99066A ", "99066B ",
           NULL };
@@ -29,7 +29,9 @@ int main( const int argc, const char **argv)
             if( sats[i][0] == buff[9] && !memcmp( sats[i], buff + 9, 7))
                sats[i] = "";
    fclose( ifile);
-   printf( "This should list 2002-048A INTEGRAL and 1983-020D,  and nothing else.\n");
+   printf( "This should list 2002-048A INTEGRAL and 1983-020A and D,  and nothing else.\n");
+   printf( "(At times,  one or more of those may be listed,  too,  but you shouldn't\n");
+   printf( "rely on that happening.)\n");
    for( i = 0; sats[i]; i++)
       if( sats[i][0])
          printf( "%s\n", sats[i]);
