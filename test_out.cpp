@@ -82,8 +82,9 @@ int main( const int argc, const char **argv)
                    && *line2 == '2')
          {
          tle_t tle;
+         const int err_code = parse_elements( line1, line2, &tle);
 
-         if( parse_elements( line1, line2, &tle) >= 0)
+         if( err_code >= 0)
             {
             char obuff[200];
             double params[N_SGP4_PARAMS], c2;
@@ -123,6 +124,8 @@ int main( const int argc, const char **argv)
                printf( "Mean anom:   %8.4f     ", tle.xmo * 180. / PI);
                printf( "   Epoch: JD %.5f\n", tle.epoch);
                }
+            if( err_code)
+               printf( "Checksum error %d\n", err_code);
             }
          }
       strcpy( line0, line1);
