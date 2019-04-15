@@ -24,6 +24,88 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #define PI \
    3.1415926535897932384626433832795028841971693993751058209749445923
 
+void greg_day_to_dmy( const long jd, int *day,
+                  int *month, long *year)
+{
+   const long mar_1_year_0 = 1721120L;     /* JD 1721120 = 1.5 Mar 0 Greg */
+   const long one_year = 365L;
+   const long four_years = 4 * one_year + 1;
+   const long century = 25 * four_years - 1L;  /* days in 100 'normal' yrs */
+   const long quad_cent = century * 4 + 1;     /* days in 400 years */
+   long days = jd - mar_1_year_0;
+   long day_in_cycle = days % quad_cent;
+
+   if( day_in_cycle < 0)
+      day_in_cycle += quad_cent;
+   *year = ((days - day_in_cycle) / quad_cent) * 400L;
+   *year += (day_in_cycle / century) * 100L;
+   if( day_in_cycle == quad_cent - 1)    /* extra leap day every 400 years */
+      {
+      *month = 2;
+      *day = 29;
+      return;
+      }
+   day_in_cycle %= century;
+   *year += (day_in_cycle / four_years) * 4L;
+   day_in_cycle %= four_years;
+   *year +=  day_in_cycle / one_year;
+   if( day_in_cycle == four_years - 1)    /* extra leap day every 4 years */
+      {
+      *month = 2;
+      *day = 29;
+      return;
+      }
+   day_in_cycle %= one_year;
+   *month = 5 * (day_in_cycle / 153L);
+   day_in_cycle %= 153L;
+   *month += 2 * (day_in_cycle / 61L);
+   day_in_cycle %= 61L;
+   if( day_in_cycle >= 31)
+      {
+      (*month)++;
+      day_in_cycle -= 31;
+      }
+   *month += 3;
+   *day = day_in_cycle + 1;
+   if( *month > 12)
+      {
+      *month -= 12;
+      (*year)++;
+      }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* Example code to add BSTAR data using Ted Molczan's method.  It just
    reads in TLEs,  computes BSTAR if possible,  then writes out the
    resulting modified TLE.
@@ -78,7 +160,7 @@ int main( const int argc, const char **argv)
    while( fgets( line2, sizeof( line2), ifile))
       {
       if( *line1 == '1' && (!norad || !memcmp( line1 + 2, norad, 5))
-                        && (!intl || !memcmp( line1 + 9, intl, 5))
+                        && (!intl || !memcmp( line1 + 9, intl, strlen( intl)))
                    && *line2 == '2')
          {
          tle_t tle;
@@ -108,6 +190,9 @@ int main( const int argc, const char **argv)
             if( verbose)
                {
                const double a1 = pow(xke / tle.xno, two_thirds);  /* in Earth radii */
+               long year, ijd;
+               int month, day;
+               double frac;
 
                printf( "Inclination: %8.4f     ", tle.xincl * 180. / PI);
                printf( "   Perigee: %.4f km\n",
@@ -122,7 +207,11 @@ int main( const int argc, const char **argv)
                     2. * pi / tle.xno);
 
                printf( "Mean anom:   %8.4f     ", tle.xmo * 180. / PI);
-               printf( "   Epoch: JD %.5f\n", tle.epoch);
+               ijd = (long)( tle.epoch + 0.5);
+               frac = tle.epoch + 0.5 - ijd;
+               greg_day_to_dmy( ijd, &day, &month, &year);
+               printf( "   Epoch: JD %.5f = %ld-%02d-%02d.%05d\n", tle.epoch,
+                              year, month, day, (int)( frac * 100000.));
                }
             if( err_code)
                printf( "Checksum error %d\n", err_code);
