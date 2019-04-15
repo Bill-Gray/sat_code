@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define TLE struct tle
 #define MAX_TLES 20000
@@ -87,6 +88,15 @@ void show_tle( FILE *ofile, const TLE *tle)
    fprintf( ofile, "%s", tle->line2);
 }
 
+static double get_perigee( const TLE *tle)
+{
+   const double ecc = atof( tle->line2 + 26) * 1e-7;
+   const double revs_per_day = atof( tle->line2 + 52);
+   const double semimajor = pow( revs_per_day, -2. / 3.);
+
+   return( semimajor * (1. - ecc));
+}
+
 static int compare_doubles( const char *buff1, const char *buff2)
 {
    const double d1 = atof( buff1);
@@ -128,6 +138,14 @@ int tle_compare( const TLE *tle1, const TLE *tle2, const char sort_method)
          break;
       case 'o': case 'O':        /* sort by ascending node */
          rval = compare_doubles( tle1->line2 + 17, tle2->line2 + 17);
+         break;
+      case 'q':
+         {
+         const double q1 = get_perigee( tle1);
+         const double q2 = get_perigee( tle2);
+
+         rval = ( q1 > q2 ? 1 : -1);
+         }
          break;
       }
    if( sort_method >= 'A' && sort_method <= 'Z')
@@ -172,6 +190,7 @@ static void error_exit( void)
    printf( "-sp, -sP       Sort output by ascending/descending epoch\n");
    printf( "-si, -sI       Sort output by ascending/descending inclination\n");
    printf( "-so, -sO       Sort output by ascending/descending ascending node\n");
+   printf( "-sq            Sort output by ascending perigee\n");
    printf( "-o(filename)   Set name of output .tle file (default is out.tle)\n");
    printf( "-n             Remove names from input TLEs\n");
    printf( "-h             Remove HTML tags from input.  This allows you to extract\n");
