@@ -57,7 +57,8 @@ endif
 INCL=$(INSTALL_DIR)/include
 
 all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
-	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) dropouts$(EXE)
+	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) \
+	dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE)
 
 CFLAGS=-Wextra -Wall -O3 -pedantic -Wno-unused-parameter
 
@@ -65,6 +66,8 @@ clean:
 	$(RM) *.o
 	$(RM) get_high$(EXE)
 	$(RM) dropouts$(EXE)
+	$(RM) fake_ast$(EXE)
+	$(RM) fix_tles$(EXE)
 	$(RM) mergetle$(EXE)
 	$(RM) obs_tes2$(EXE)
 	$(RM) obs_test$(EXE)
@@ -106,6 +109,12 @@ obs_tes2$(EXE):	 obs_tes2.o observe.o libsatell.a
 
 obs_test$(EXE):	 obs_test.o observe.o libsatell.a
 	$(CC) $(CFLAGS) -o obs_test$(EXE) obs_test.o observe.o libsatell.a -lm
+
+fake_ast$(EXE):	 fake_ast.o observe.o libsatell.a
+	$(CC) $(CFLAGS) -o fake_ast$(EXE) fake_ast.o observe.o libsatell.a -lm
+
+fix_tles$(EXE):	 fix_tles.o libsatell.a
+	$(CC) $(CFLAGS) -o fix_tles$(EXE) fix_tles.o libsatell.a -lm
 
 out_comp$(EXE):	 out_comp.o
 	$(CC) $(CFLAGS) -o out_comp$(EXE) out_comp.o -lm
