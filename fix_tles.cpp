@@ -73,6 +73,7 @@ int main( const int argc, const char **argv)
    FILE *ifile = stdin, *ofile = stdout;
    char line1[200], line2[200];
 
+   *intl_desig = '\0';
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-')
          {
@@ -122,7 +123,7 @@ int main( const int argc, const char **argv)
             memcpy( line1 + 2, norad_desig, 5);
             memcpy( line2 + 2, norad_desig, 5);
             }
-         if( intl_desig)
+         if( *intl_desig)
             memcpy( line1 + 9, intl_desig, 8);
          set_checksum( line1);
          set_checksum( line2);
