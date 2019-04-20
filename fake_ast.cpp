@@ -95,7 +95,7 @@ int main( const int argc, const char **argv)
             get_satellite_ra_dec_delta( observer_loc, pos,
                                  &ra, &dec, &dist_to_satellite);
             epoch_of_date_to_j2000( jd, &ra, &dec);
-            printf( "%-14sC%13.5lf    %08.4lf    %+08.4lf",
+            printf( "%-14sC%13.5f    %08.4f    %+08.4f",
                      intl_id, jd, ra * 180. / PI, dec * 180. / PI);
             printf( "                    TLEs 500\n");
             }
