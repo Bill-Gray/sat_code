@@ -527,6 +527,7 @@ some objects with poor TLEs,  but restrict the radius tightly for objects
 that we know we have a good handle on.  */
 
 static double max_expected_error = 180.;
+static int n_tles_expected_in_file = 0;
 
 static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
              const char *tle_file_name, const double search_radius,
@@ -550,12 +551,17 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
       {
       tle_t tle;  /* Structure for two-line elements set for satellite */
       const double mins_per_day = 24. * 60.;
+      bool is_a_tle = false;
 
       if( verbose > 3)
          printf( "%s\n", line2);
       if( got_obs_in_range( obs, n_obs, tle_start, tle_start + tle_range)
-                 && parse_elements( line1, line2, &tle) >= 0
-                 && (tle.ephemeris_type == 'H'
+                 && parse_elements( line1, line2, &tle) >= 0)
+         {
+         is_a_tle = true;
+         n_tles_found++;
+         }
+      if( is_a_tle && (tle.ephemeris_type == 'H'
                  || tle.xno < 2. * PI * max_revs_per_day / mins_per_day)
                  && (!norad_id || norad_id == tle.norad_number))
          {                           /* hey! we got a TLE! */
@@ -563,7 +569,6 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
 
          if( verbose > 1)
             printf( "TLE found:\n%s\n%s\n", line1, line2);
-         n_tles_found++;
          if( select_ephemeris( &tle))
             SDP4_init( sat_params, &tle);
          else
@@ -661,6 +666,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
          check_updates = false;
       else if( !memcmp( line2, "# Max error",  11))
          max_expected_error = atof( line2 + 12);
+      else if( !memcmp( line2, "# TLEs expected:", 16))
+         n_tles_expected_in_file = atoi( line2 + 17);
       else if( !memcmp( line2, "# Ephem range:", 14))
          {
          const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
@@ -715,6 +722,14 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
       }
    if( verbose)
       printf( "%d TLEs read from '%s'\n", n_tles_found, tle_file_name);
+   if( n_tles_found < n_tles_expected_in_file)
+      {
+      printf( "**** WARNING : %d TLEs were read from '%s'.  This is unexpected.\n",
+                  n_tles_found, tle_file_name);
+#ifdef ON_LINE_VERSION
+      printf( "Please e-mail the author (pluto at projectpluto dot com) about this.\n");
+#endif
+      }
    fclose( tle_file);
    return( rval);
 }
