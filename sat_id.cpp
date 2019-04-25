@@ -241,7 +241,10 @@ static int get_station_code_data( char *station_code_data,
 
 /* Loads up MPC-formatted 80-column observations from a file.  Makes
 a pass to find out how many observations there are,  allocates space
-for them,  then reads them again to actually load the observations. */
+for them,  then reads them again to actually load the observations.
+Note that because single observations will get duplicated,  we actually
+double the size of the allocated array,  just in case every observation
+we read in is a singleton. */
 
 static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          const double t_low, const double t_high)
@@ -281,7 +284,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                if( !strcmp( buff, "COM end ignore obs"))
                   break;
       if( !pass && count)
-         rval = (OBSERVATION *)calloc( count, sizeof( OBSERVATION));
+         rval = (OBSERVATION *)calloc( count * 2, sizeof( OBSERVATION));
       *n_found = count;
       }
    free_ades2mpc_context( ades_context);
@@ -384,6 +387,7 @@ static size_t drop_extra_obs( OBSERVATION *obs, const size_t n_obs,
                   const double speed_cutoff)
 {
    size_t i = 0, rval = 0;
+   OBSERVATION *tobs = (OBSERVATION *)calloc( n_obs * 2, sizeof( OBSERVATION));
 
    while( i < n_obs)
       {
@@ -394,8 +398,8 @@ static size_t drop_extra_obs( OBSERVATION *obs, const size_t n_obs,
          j++;
       if( j == 1)    /* singleton observation */
          {
-         obs[rval++] = *optr;
-         obs[rval++] = *optr;
+         tobs[rval++] = *optr;
+         tobs[rval++] = *optr;
          }
       else        /* two or more obs:  pick two best */
          {
@@ -428,12 +432,14 @@ static size_t drop_extra_obs( OBSERVATION *obs, const size_t n_obs,
          speed /= minutes_per_day;    /* ...then to deg/hour = arcmin/minute */
          if( speed > speed_cutoff)    /* omit slow objects */
             {
-            obs[rval++] = optr[best_b];
-            obs[rval++] = optr[best_a];
+            tobs[rval++] = optr[best_b];
+            tobs[rval++] = optr[best_a];
             }
          }
       i += j;
       }
+   memcpy( obs, tobs, rval * sizeof( OBSERVATION));
+   free( tobs);
    return( rval);
 }
 
@@ -490,6 +496,7 @@ static bool is_in_range( const double jd, const double tle_start,
 static bool got_obs_in_range( const OBSERVATION *obs, size_t n_obs,
                const double jd_start, const double jd_end)
 {
+   assert( n_obs > 0);
 // if( obs[0].jd < jd_end && obs[n_obs - 1].jd > jd_start)
       while( n_obs--)
          {
@@ -544,6 +551,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
       tle_t tle;  /* Structure for two-line elements set for satellite */
       const double mins_per_day = 24. * 60.;
 
+      if( verbose > 3)
+         printf( "%s\n", line2);
       if( got_obs_in_range( obs, n_obs, tle_start, tle_start + tle_range)
                  && parse_elements( line1, line2, &tle) >= 0
                  && (tle.ephemeris_type == 'H'
@@ -693,6 +702,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                i--;
             memcpy( iname, tle_file_name, i);
             strcpy( iname + i, line2 + 10);
+            if( verbose > 1)
+               printf( "Including '%s'\n", iname);
             rval = add_tle_to_obs( obs, n_obs, iname, search_radius,
                                     max_revs_per_day);
             }
