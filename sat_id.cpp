@@ -378,10 +378,13 @@ are really close to the optimal distance apart,  but are actually from
 different orbits.
 
 This code thinks in terms of pairs of observations.  If somebody insists
-on providing a single observation,  we duplicate it.
+on providing a single observation,  we duplicate it.  (Unless the '-1'
+switch is specified,  in which case single observations are just dropped.)
 
 We also drop objects if they're moving slower than 'speed_cutoff',
 set to help us ignore the slow guys that are almost certainly rocks. */
+
+static bool include_singletons = true;
 
 static size_t drop_extra_obs( OBSERVATION *obs, const size_t n_obs,
                   const double speed_cutoff)
@@ -398,8 +401,11 @@ static size_t drop_extra_obs( OBSERVATION *obs, const size_t n_obs,
          j++;
       if( j == 1)    /* singleton observation */
          {
-         tobs[rval++] = *optr;
-         tobs[rval++] = *optr;
+         if( include_singletons)
+            {
+            tobs[rval++] = *optr;
+            tobs[rval++] = *optr;
+            }
          }
       else        /* two or more obs:  pick two best */
          {
@@ -779,6 +785,9 @@ int main( const int argc, const char **argv)
             param = argv[i + 1];
          switch( argv[i][1])
             {
+            case '1':
+               include_singletons = false;
+               break;
             case 'a':
                t_low = get_time_from_string( 0, param, FULL_CTIME_YMD, NULL);
                break;
