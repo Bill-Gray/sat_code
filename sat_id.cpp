@@ -490,6 +490,37 @@ static bool got_obs_in_range( const OBSERVATION *obs, size_t n_obs,
    return( false);
 }
 
+/* The international (YYYY-NNNletter(s)) designation and the NORAD
+five-digit designation are always shown for a match.  If they're in
+the name as well,  we should remove them so that more of the actual
+name gets displayed.  */
+
+static void remove_redundant_desig( char *name, const char *desig)
+{
+   size_t len = strlen( desig), i;
+
+   while( len && desig[len - 1] == ' ')
+      len--;
+   for( i = 0; name[i]; i++)
+      if( !memcmp( name + i, desig, len))
+         {
+         size_t n = len;
+
+         if( i >= 3 && name[i - 2] == '=' && name[i - 1] == ' '
+                                          && name[i - 3] == ' ')
+            {
+            i -= 3;     /* remove preceding '=' */
+            n += 3;
+            }
+         else if( name[i + n] == ' ' && name[i + n + 1] == '='
+                                     && name[i + n + 2] == ' ')
+            n += 3;
+         memmove( name + i, name + i + n, strlen( name + i + n) + 1);
+         i--;
+         }
+}
+
+
           /* The computed and observed motions should match,  but (obviously)
           only to some tolerance.  A tolerance of 0.001'/s seems to work. */
 double motion_mismatch_limit = .001;
@@ -632,14 +663,22 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
-                     sprintf( obuff, "      %5dU = %-9s",
+                     sprintf( obuff, "      %05dU = %-9s",
                            tle.norad_number, full_intl_desig);
                      sprintf( obuff + strlen( obuff),
                                "e=%.2f; P=%.1f min; i=%.1f",
                                tle.eo, 2. * PI / tle.xno,
                                tle.xincl * 180. / PI);
                      if( tle_checksum( line0))         /* object name given... */
+                        {
+                        char norad_desig[20];
+
+                        remove_redundant_desig( line0, full_intl_desig);
+                        snprintf( norad_desig, sizeof( norad_desig),
+                                           "NORAD %05d", tle.norad_number);
+                        remove_redundant_desig( line0, norad_desig);
                         sprintf( obuff + strlen( obuff), ": %s", line0);
+                        }
                      obuff[79] = '\0';    /* avoid buffer overrun */
 //                   sprintf( obuff + strlen( obuff), " motion %f", motion_diff);
                      strcat( obuff, "\n");
