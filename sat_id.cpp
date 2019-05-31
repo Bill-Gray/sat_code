@@ -386,67 +386,44 @@ set to help us ignore the slow guys that are almost certainly rocks. */
 
 static bool include_singletons = true;
 
-static size_t drop_extra_obs( OBSERVATION *obs, const size_t n_obs,
-                  const double speed_cutoff)
+static double find_good_pair( OBSERVATION *obs, const size_t n_obs,
+                   OBSERVATION **ptr1, OBSERVATION **ptr2)
 {
-   size_t i = 0, rval = 0;
-   OBSERVATION *tobs = (OBSERVATION *)calloc( n_obs * 2, sizeof( OBSERVATION));
+   size_t a, b;
+   double speed = 0.;
+   double best_score = 1e+30;
 
-   while( i < n_obs)
-      {
-      size_t j = 0;
-      OBSERVATION *optr = obs + i;
-
-      while( j < n_obs - i && !id_compare( optr, optr + j))
-         j++;
-      if( j == 1)    /* singleton observation */
+   *ptr1 = *ptr2 = obs;
+// *ptr2 = obs + n_obs - 1;
+// return( 0);
+   assert( n_obs < 1000);
+   for( b = 0; b < n_obs; b++)
+      for( a = b + 1; a < n_obs; a++)
+         if( !memcmp( &obs[a].text[77], &obs[b].text[77], 3))
          {
-         if( include_singletons)
-            {
-            tobs[rval++] = *optr;
-            tobs[rval++] = *optr;
-            }
-         }
-      else        /* two or more obs:  pick two best */
-         {
-         size_t a, b, best_a = 1, best_b = 0;
-         double speed = 0.;
-         double best_score = 1e+30;
+         const double max_time_sep = 0.1;  /* .1 day = 2.4 hr */
+         const double optimal_dist = PI / 180.;   /* one degree */
+         const double dist = angular_sep( obs[b].ra - obs[a].ra,
+                           obs[b].dec, obs[a].dec);
+         const double score = fabs( dist - optimal_dist);
+         const double dt = obs[a].jd - obs[b].jd;
 
-         for( a = 1; a < j; a++)
-            for( b = 0; b < a; b++)
-               {
-               const double max_time_sep = 0.1;  /* .1 day = 2.4 hr */
-               const double optimal_dist = PI / 180.;   /* one degree */
-               const double dist = angular_sep( optr[b].ra - optr[a].ra,
-                                 optr[b].dec, optr[a].dec);
-               const double score = fabs( dist - optimal_dist);
-               const double dt = optr[a].jd - optr[b].jd;
-
-               assert( dt >= .0);
-               if( best_score > score
-                        && dt < max_time_sep && dt > 0.
-                        && !memcmp( &optr[a].text[77], &optr[b].text[77], 3))
-                  {
-                  best_score = score;
-                  best_a = a;
-                  best_b = b;
-                  speed = dist / dt;
-                  }
-               }
-         speed *= 180. / PI;    /* cvt speed from radians/day to deg/day */
-         speed /= minutes_per_day;    /* ...then to deg/hour = arcmin/minute */
-         if( speed > speed_cutoff)    /* omit slow objects */
+         assert( dt >= .0);
+         if( best_score > score
+                  && dt < max_time_sep
+                  && !memcmp( &obs[a].text[77], &obs[b].text[77], 3))
             {
-            tobs[rval++] = optr[best_b];
-            tobs[rval++] = optr[best_a];
+            best_score = score;
+            *ptr2 = obs + a;
+            *ptr1 = obs + b;
+            speed = dist / dt;
             }
+         if( dt > max_time_sep)  /* no need to continue in this loop */
+            a = n_obs;
          }
-      i += j;
-      }
-   memcpy( obs, tobs, rval * sizeof( OBSERVATION));
-   free( tobs);
-   return( rval);
+   speed *= 180. / PI;    /* cvt speed from radians/day to deg/day */
+   speed /= minutes_per_day;    /* ...then to deg/hour = arcmin/minute */
+   return( speed);
 }
 
 static void error_exit( const int exit_code)
@@ -572,6 +549,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                  && (!norad_id || norad_id == tle.norad_number))
          {                           /* hey! we got a TLE! */
          double sat_params[N_SAT_PARAMS];
+         size_t idx = 0;
 
          if( verbose > 1)
             printf( "TLE found:\n%s\n%s\n", line1, line2);
@@ -579,34 +557,43 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
             SDP4_init( sat_params, &tle);
          else
             SGP4_init( sat_params, &tle);
-         for( size_t idx = 0; idx < n_obs; idx += 2)
-            if( is_in_range( obs[idx].jd, tle_start, tle_range))
+         while( idx < n_obs)
+            {
+            size_t eidx = idx;
+            OBSERVATION *optr1, *optr2;
+            double speed;
+
+            while( eidx < n_obs && !id_compare( obs + idx, obs + eidx))
+               eidx++;
+            speed = find_good_pair( obs + idx, eidx - idx,
+                                &optr1, &optr2);
+            if( is_in_range( optr1->jd, tle_start, tle_range))
                {
-               OBSERVATION *optr = obs + idx;
                double dx, dy;
                double radius;
                double ra, dec, dist_to_satellite;
                int sxpx_rval, n_matches = 0;
 
+               eidx--;
                sxpx_rval = compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
-                              optr, &tle, sat_params);
-               compute_offsets( &dx, &dy, ra - optr->ra, dec, optr->dec);
+                              optr1, &tle, sat_params);
+               compute_offsets( &dx, &dy, ra - optr1->ra, dec, optr1->dec);
                radius = sqrt( dx * dx + dy * dy) * 180. / PI;
                while( n_matches < MAX_MATCHES - 1
-                       && optr->matches[n_matches] != tle.norad_number
-                       && optr->matches[n_matches])
+                       && optr1->matches[n_matches] != tle.norad_number
+                       && optr1->matches[n_matches])
                   n_matches++;
                if( !sxpx_rval && radius < search_radius      /* good enough for us! */
                        && radius < max_expected_error
-                       && !optr->matches[n_matches])
+                       && !optr1->matches[n_matches])
                   {
                   double dx1, dy1;
-                  const double dt = optr[1].jd - optr[0].jd;
+                  const double dt = optr2->jd - optr1->jd;
                   double motion_diff;
 
                   compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
-                              optr + 1, &tle, sat_params);
-                  compute_offsets( &dx1, &dy1, ra - optr[1].ra, dec, optr[1].dec);
+                              optr2, &tle, sat_params);
+                  compute_offsets( &dx1, &dy1, ra - optr2->ra, dec, optr2->dec);
                   dx1 -= dx;
                   dy1 -= dy;
                   motion_diff = sqrt( dx1 * dx1 + dy1 * dy1);
@@ -626,8 +613,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                      double xvel, yvel;
                      double motion_rate = 0., motion_pa = 0.;
 
-                     compute_offsets( &xvel, &yvel, optr[1].ra - optr[0].ra,
-                                                    optr[1].dec, optr[0].dec);
+                     compute_offsets( &xvel, &yvel, optr2->ra - optr1->ra,
+                                                    optr2->dec, optr1->dec);
                      if( dt)
                         {
                         motion_pa = atan2( yvel, xvel) * 180. / PI + 90.;
@@ -641,7 +628,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
-                     optr->matches[n_matches] = tle.norad_number;
+                     optr1->matches[n_matches] = tle.norad_number;
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
@@ -662,11 +649,14 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                             dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
                                   or in degrees/minute */
-                     printf( "%s\n", obs[idx].text);
+                     printf( "%s\n", optr1->text);
                      printf( "%s\n", obuff);
                      }
                   }
+               eidx++;
                }
+            idx = eidx;
+            }
          }
       else if( !memcmp( line2, "# No updates", 12))
          check_updates = false;
@@ -839,11 +829,9 @@ int main( const int argc, const char **argv)
    obs = get_observations_from_file( ifile, &n_obs, t_low, t_high);
    fclose( ifile);
    printf( "%d observations found\n", (int)n_obs);
-   shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
-   n_obs = drop_extra_obs( obs, n_obs, speed_cutoff);
-   printf( "%d observations left after dropping extras\n", (int)n_obs);
    if( !obs || !n_obs)
       return( -2);
+   shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
 
    rval = add_tle_to_obs( obs, n_obs, tle_file_name, search_radius,
                                     max_revs_per_day);
