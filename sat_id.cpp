@@ -783,7 +783,7 @@ int main( const int argc, const char **argv)
 #endif
 {
    const char *tle_file_name = "tle_list.txt";
-   FILE *ifile = fopen( argv[1], "rb");
+   FILE *ifile;
    OBSERVATION *obs;
    object_t *objects;
    size_t n_obs, n_objects;
@@ -864,6 +864,7 @@ int main( const int argc, const char **argv)
       for( i = 0; i < argc; i++)
          printf( "Arg %d: '%s'\n", i, argv[i]);
 
+   ifile = fopen( argv[1], "rb");
    if( !ifile)
       {
       printf( "Couldn't open input file %s\n", argv[1]);
@@ -921,4 +922,3 @@ int main( const int argc, const char **argv)
    printf( "\n%.1f seconds elapsed\n", (double)clock( ) / (double)CLOCKS_PER_SEC);
    return( rval);
 }     /* End of main() */
-
