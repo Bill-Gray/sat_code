@@ -522,6 +522,16 @@ static void remove_redundant_desig( char *name, const char *desig)
          }
 }
 
+static void compute_motion( double *motion_pa, double *motion_rate,
+               const double xvel, const double yvel)
+{
+   *motion_pa = atan2( yvel, xvel) * 180. / PI + 90.;
+   if( *motion_pa < 0.)
+      *motion_pa += 180.;
+   *motion_rate = sqrt( xvel * xvel + yvel * yvel);
+   *motion_rate *= 180. / PI;        /* now in degrees/day */
+   *motion_rate /= 24.;              /* now in degrees/hr = arcsec/second */
+}
 
           /* The computed and observed motions should match,  but (obviously)
           only to some tolerance.  A tolerance of 0.001'/s seems to work. */
@@ -618,11 +628,11 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                   {
                   double dx1, dy1;
                   const double dt = optr2->jd - optr1->jd;
-                  double motion_diff;
+                  double motion_diff, ra2, dec2;
 
-                  compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
+                  compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
                               optr2, &tle, sat_params);
-                  compute_offsets( &dx1, &dy1, ra - optr2->ra, dec, optr2->dec);
+                  compute_offsets( &dx1, &dy1, ra2 - optr2->ra, dec2, optr2->dec);
                   dx1 -= dx;
                   dy1 -= dy;
                   motion_diff = sqrt( dx1 * dx1 + dy1 * dy1);
@@ -645,15 +655,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      compute_offsets( &xvel, &yvel, optr2->ra - optr1->ra,
                                                     optr2->dec, optr1->dec);
                      if( dt)
-                        {
-                        motion_pa = atan2( yvel, xvel) * 180. / PI + 90.;
-                        if( motion_pa < 0.)
-                           motion_pa += 180.;
-                        motion_rate = sqrt( xvel * xvel + yvel * yvel);
-                        motion_rate /= dt;
-                        motion_rate *= 180. / PI;        /* now in degrees/day */
-                        motion_rate /= 24.;              /* now in degrees/hr = arcsec/second */
-                        }
+                        compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
