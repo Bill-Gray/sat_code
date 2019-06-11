@@ -248,10 +248,7 @@ static int get_station_code_data( char *station_code_data,
 
 /* Loads up MPC-formatted 80-column observations from a file.  Makes
 a pass to find out how many observations there are,  allocates space
-for them,  then reads them again to actually load the observations.
-Note that because single observations will get duplicated,  we actually
-double the size of the allocated array,  just in case every observation
-we read in is a singleton. */
+for them,  then reads them again to actually load the observations. */
 
 static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          const double t_low, const double t_high)
@@ -291,7 +288,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                if( !strcmp( buff, "COM end ignore obs"))
                   break;
       if( !pass && count)
-         rval = (OBSERVATION *)calloc( count * 2, sizeof( OBSERVATION));
+         rval = (OBSERVATION *)calloc( count + 1, sizeof( OBSERVATION));
       *n_found = count;
       }
    free_ades2mpc_context( ades_context);
@@ -486,9 +483,10 @@ static bool got_obs_in_range( const object_t *objs, size_t n_objects,
       OBSERVATION *obs = objs->obs;
       size_t i;
 
-      for( i = 0; i < objs->n_obs; i++)
-         if( obs[i].jd > jd_start && obs[i].jd < jd_end)
-            return( true);
+      if( obs[0].jd < jd_end && obs[objs->n_obs - 1].jd > jd_start)
+         for( i = 0; i < objs->n_obs; i++)
+            if( obs[i].jd > jd_start && obs[i].jd < jd_end)
+               return( true);
       objs++;
       }
    return( false);
@@ -556,6 +554,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    int rval = 0, n_tles_found = 0;
    bool check_updates = true;
    bool look_for_tles = true;
+   const clock_t time_started = clock( );
 
    if( !tle_file)
       {
@@ -754,12 +753,15 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             }
          tle_start = 0.;
          tle_range = 1e+9;
+         look_for_tles = true;
          }
       strcpy( line0, line1);
       strcpy( line1, line2);
       }
    if( verbose)
-      printf( "%d TLEs read from '%s'\n", n_tles_found, tle_file_name);
+      printf( "%d TLEs read from '%s', %.3f seconds\n", n_tles_found,
+                tle_file_name,
+                (double)( clock( ) - time_started) / (double)CLOCKS_PER_SEC);
    if( n_tles_found < n_tles_expected_in_file)
       {
       printf( "**** WARNING : %d TLEs were read from '%s'.  This is unexpected.\n",
@@ -905,7 +907,8 @@ int main( const int argc, const char **argv)
          i--;
          }
       }
-
+   if( speed_cutoff)
+      printf( "%u objects after removing slow ones\n", (unsigned)n_objects);
    rval = add_tle_to_obs( objects, n_objects, tle_file_name, search_radius,
                                     max_revs_per_day);
    if( show_summary)
