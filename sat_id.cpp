@@ -554,6 +554,7 @@ that we know we have a good handle on.  */
 
 static double max_expected_error = 180.;
 static int n_tles_expected_in_file = 0;
+static bool show_computed_motion = false;
 
 static int add_tle_to_obs( object_t *objects, const size_t n_objects,
              const char *tle_file_name, const double search_radius,
@@ -683,13 +684,21 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 //                   sprintf( obuff + strlen( obuff), " motion %f", motion_diff);
                      strcat( obuff, "\n");
                      sprintf( obuff + strlen( obuff),
-                        "             motion %5.2f\"/sec at PA %.1f; dist=%8.1f km; offset=%6.3f deg\n",
+                        "             motion %5.2f\"/sec at PA %5.1f; dist=%8.1f km; offset=%6.3f deg\n",
                             motion_rate, motion_pa,
                             dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
                                   or in degrees/minute */
                      printf( "%s\n", optr1->text);
-                     printf( "%s\n", obuff);
+                     printf( "%s", obuff);
+                     if( dt && show_computed_motion)
+                        {
+                        compute_offsets( &xvel, &yvel, ra2 - ra, dec2, dec);
+                        compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
+                        printf( "             motion %5.2f\"/sec at PA %5.1f (computed)\n",
+                            motion_rate, motion_pa);
+                        }
+                     printf( "\n");
                      }
                   }
                }
@@ -842,6 +851,9 @@ int main( const int argc, const char **argv)
                break;
             case 'n':
                norad_id = atoi( param);
+               break;
+            case 's':
+               show_computed_motion = true;
                break;
             case 't':
                tle_file_name = param;
