@@ -107,8 +107,15 @@ OBSERVATION
    char text[81];
    double jd, ra, dec;
    double lon, rho_cos_phi, rho_sin_phi;
-   int matches[MAX_MATCHES];
    };
+
+typedef struct
+{
+   OBSERVATION *obs;
+   size_t idx1, idx2, n_obs;
+   double speed;
+   int matches[MAX_MATCHES];
+} object_t;
 
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
 #define TIME_EPSILON (1./86400.)
@@ -380,21 +387,19 @@ different orbits.
 This code thinks in terms of pairs of observations.  If somebody insists
 on providing a single observation,  we duplicate it.  (Unless the '-1'
 switch is specified,  in which case single observations are just dropped.)
-
-We also drop objects if they're moving slower than 'speed_cutoff',
-set to help us ignore the slow guys that are almost certainly rocks. */
+*/
 
 static bool include_singletons = true;
 
 static double find_good_pair( OBSERVATION *obs, const size_t n_obs,
-                   OBSERVATION **ptr1, OBSERVATION **ptr2)
+                   size_t *idx1, size_t *idx2)
 {
    size_t a, b;
    double speed = 0., dt;
    const double max_time_sep = 0.1;  /* .1 day = 2.4 hr */
    double best_score = 1e+30;
 
-   *ptr1 = *ptr2 = obs;
+   *idx1 = *idx2 = 0;
    for( b = 0; b < n_obs; b++)
       for( a = b + 1; a < n_obs
                         && (dt = obs[a].jd - obs[b].jd) < max_time_sep; a++)
@@ -409,13 +414,13 @@ static double find_good_pair( OBSERVATION *obs, const size_t n_obs,
             if( best_score > score)
                {
                best_score = score;
-               *ptr2 = obs + a;
-               *ptr1 = obs + b;
+               *idx2 = a;
+               *idx1 = b;
                speed = dist / dt;
                }
             }
    speed *= 180. / PI;    /* cvt speed from radians/day to deg/day */
-   speed /= minutes_per_day;    /* ...then to deg/hour = arcmin/minute */
+   speed /= hours_per_day;    /* ...then to deg/hour = arcmin/minute */
    return( speed);
 }
 
@@ -469,17 +474,23 @@ static bool is_in_range( const double jd, const double tle_start,
             (jd >= tle_start && jd <= tle_start + tle_range));
 }
 
-static bool got_obs_in_range( const OBSERVATION *obs, size_t n_obs,
+/* Determines if we have _any_ observations between the given JDs.  If we
+don't,  we can skip an individual TLE or an entire file.  */
+
+static bool got_obs_in_range( const object_t *objs, size_t n_objects,
                const double jd_start, const double jd_end)
 {
-   assert( n_obs > 0);
-// if( obs[0].jd < jd_end && obs[n_obs - 1].jd > jd_start)
-      while( n_obs--)
-         {
-         if( obs->jd > jd_start && obs->jd < jd_end)
+   assert( n_objects > 0);
+   while( n_objects--)
+      {
+      OBSERVATION *obs = objs->obs;
+      size_t i;
+
+      for( i = 0; i < objs->n_obs; i++)
+         if( obs[i].jd > jd_start && obs[i].jd < jd_end)
             return( true);
-         obs++;
-         }
+      objs++;
+      }
    return( false);
 }
 
@@ -536,7 +547,7 @@ that we know we have a good handle on.  */
 static double max_expected_error = 180.;
 static int n_tles_expected_in_file = 0;
 
-static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
+static int add_tle_to_obs( object_t *objects, const size_t n_objects,
              const char *tle_file_name, const double search_radius,
              const double max_revs_per_day)
 {
@@ -544,6 +555,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
    FILE *tle_file = fopen( tle_file_name, "rb");
    int rval = 0, n_tles_found = 0;
    bool check_updates = true;
+   bool look_for_tles = true;
 
    if( !tle_file)
       {
@@ -551,8 +563,8 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
       return( -1);
       }
    if( verbose)
-      printf( "Looking through TLE file '%s', %u obs, radius %f, max %f revs/day\n",
-                 tle_file_name, (unsigned)n_obs, search_radius, max_revs_per_day);
+      printf( "Looking through TLE file '%s', %u objs, radius %f, max %f revs/day\n",
+                 tle_file_name, (unsigned)n_objects, search_radius, max_revs_per_day);
    *line0 = *line1 = '\0';
    while( fgets_trimmed( line2, sizeof( line2), tle_file))
       {
@@ -562,8 +574,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
 
       if( verbose > 3)
          printf( "%s\n", line2);
-      if( got_obs_in_range( obs, n_obs, tle_start, tle_start + tle_range)
-                 && parse_elements( line1, line2, &tle) >= 0)
+      if( look_for_tles && parse_elements( line1, line2, &tle) >= 0)
          {
          is_a_tle = true;
          n_tles_found++;
@@ -573,7 +584,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                  && (!norad_id || norad_id == tle.norad_number))
          {                           /* hey! we got a TLE! */
          double sat_params[N_SAT_PARAMS];
-         size_t idx = 0;
+         size_t idx;
 
          if( verbose > 1)
             printf( "TLE found:\n%s\n%s\n", line1, line2);
@@ -581,16 +592,12 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
             SDP4_init( sat_params, &tle);
          else
             SGP4_init( sat_params, &tle);
-         while( idx < n_obs)
+         for( idx = 0; idx < n_objects; idx++)
             {
-            size_t eidx = idx;
-            OBSERVATION *optr1, *optr2;
-            double speed;
+            object_t *obj_ptr = objects + idx;
+            const OBSERVATION *optr1 = obj_ptr->obs + obj_ptr->idx1;
+            const OBSERVATION *optr2 = obj_ptr->obs + obj_ptr->idx2;
 
-            while( eidx < n_obs && !id_compare( obs + idx, obs + eidx))
-               eidx++;
-            speed = find_good_pair( obs + idx, eidx - idx,
-                                &optr1, &optr2);
             if( is_in_range( optr1->jd, tle_start, tle_range))
                {
                double dx, dy;
@@ -598,18 +605,17 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                double ra, dec, dist_to_satellite;
                int sxpx_rval, n_matches = 0;
 
-               eidx--;
                sxpx_rval = compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
                               optr1, &tle, sat_params);
                compute_offsets( &dx, &dy, ra - optr1->ra, dec, optr1->dec);
                radius = sqrt( dx * dx + dy * dy) * 180. / PI;
                while( n_matches < MAX_MATCHES - 1
-                       && optr1->matches[n_matches] != tle.norad_number
-                       && optr1->matches[n_matches])
+                       && obj_ptr->matches[n_matches] != tle.norad_number
+                       && obj_ptr->matches[n_matches])
                   n_matches++;
                if( !sxpx_rval && radius < search_radius      /* good enough for us! */
                        && radius < max_expected_error
-                       && !optr1->matches[n_matches])
+                       && !obj_ptr->matches[n_matches])
                   {
                   double dx1, dy1;
                   const double dt = optr2->jd - optr1->jd;
@@ -652,7 +658,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
-                     optr1->matches[n_matches] = tle.norad_number;
+                     obj_ptr->matches[n_matches] = tle.norad_number;
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
@@ -685,9 +691,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
                      printf( "%s\n", obuff);
                      }
                   }
-               eidx++;
                }
-            idx = eidx;
             }
          }
       else if( !memcmp( line2, "# No updates", 12))
@@ -705,7 +709,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
          sscanf( line2 + 14, "%lf %lf %lf\n", &mjd_start, &mjd_end, &tle_range);
          if( check_updates && mjd_end < curr_mjd + 7.)
             printf( "WARNING:  Update TLEs in '%s'\n", tle_file_name);
-         if( !got_obs_in_range( obs, n_obs, mjd_start + 2400000.5,
+         if( !got_obs_in_range( objects, n_objects, mjd_start + 2400000.5,
                                             mjd_end + 2400000.5))
             {
             if( verbose)
@@ -723,12 +727,18 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
          assert( n_read == 2);
          tle_start = get_time_from_string( 0, start, FULL_CTIME_YMD, NULL);
          tle_range = get_time_from_string( 0, end, FULL_CTIME_YMD, NULL) - tle_start;
+         look_for_tles = got_obs_in_range( objects, n_objects, tle_start,
+                                 tle_start + tle_range);
          }
       else if( !memcmp( line2, "# MJD ", 6))
+         {
          tle_start = atof( line2 + 6) + 2400000.5;
+         look_for_tles = got_obs_in_range( objects, n_objects, tle_start,
+                                 tle_start + tle_range);
+         }
       else if( !memcmp( line2, "# Include ", 10))
          {
-         if( got_obs_in_range( obs, n_obs, tle_start, tle_start + tle_range))
+         if( look_for_tles)
             {
             char iname[255];
             size_t i = strlen( tle_file_name);
@@ -739,7 +749,7 @@ static int add_tle_to_obs( OBSERVATION *obs, const size_t n_obs,
             strcpy( iname + i, line2 + 10);
             if( verbose > 1)
                printf( "Including '%s'\n", iname);
-            rval = add_tle_to_obs( obs, n_obs, iname, search_radius,
+            rval = add_tle_to_obs( objects, n_objects, iname, search_radius,
                                     max_revs_per_day);
             }
          tle_start = 0.;
@@ -775,7 +785,8 @@ int main( const int argc, const char **argv)
    const char *tle_file_name = "tle_list.txt";
    FILE *ifile = fopen( argv[1], "rb");
    OBSERVATION *obs;
-   size_t n_obs;
+   object_t *objects;
+   size_t n_obs, n_objects;
    double search_radius = 4;     /* default to 4-degree search */
             /* Asteroid searchers _sometimes_ report Molniyas to me,
             which make two revolutions a day.  This limit could safely
@@ -789,7 +800,7 @@ int main( const int argc, const char **argv)
    double speed_cutoff = 0.001;
    double t_low = 2435839.5;  /* no satellites before 1957 Jan 1 */
    double t_high = 3000000.5;
-   int rval;
+   int rval, i, prev_i;
    bool show_summary = false;
 
    if( argc == 1)
@@ -798,7 +809,7 @@ int main( const int argc, const char **argv)
       error_exit( -2);
       }
 
-   for( int i = 1; i < argc; i++)
+   for( i = 1; i < argc; i++)
       if( argv[i][0] == '-')
          {
          const char *param = argv[i] + 2;
@@ -850,7 +861,7 @@ int main( const int argc, const char **argv)
             }
          }
    if( verbose)
-      for( int i = 0; i < argc; i++)
+      for( i = 0; i < argc; i++)
          printf( "Arg %d: '%s'\n", i, argv[i]);
 
    if( !ifile)
@@ -865,16 +876,47 @@ int main( const int argc, const char **argv)
       return( -2);
    shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
 
-   rval = add_tle_to_obs( obs, n_obs, tle_file_name, search_radius,
+   for( i = n_objects = 0; (size_t)i < n_obs; i++)
+      if( !i || id_compare( obs + i - 1, obs + i))
+         n_objects++;
+   objects = (object_t *)calloc( n_objects, sizeof( object_t));
+   assert( objects);
+   printf( "%d objects\n", (int)n_objects);
+   for( i = prev_i = n_objects = 0; (size_t)i < n_obs; i++)
+      if( !i || id_compare( obs + i - 1, obs + i))
+         {
+         objects[n_objects].obs = obs + i;
+         if( n_objects)
+            objects[n_objects - 1].n_obs = i - prev_i;
+         n_objects++;
+         prev_i = i;
+         }
+   objects[n_objects - 1].n_obs = i - prev_i;
+   for( i = 0; (size_t)i < n_objects; i++)
+      {
+      objects[i].speed = find_good_pair( objects[i].obs,
+                  objects[i].n_obs, &objects[i].idx1, &objects[i].idx2);
+      if( objects[i].speed < speed_cutoff)
+         {               /* too slow to be considered */
+         n_objects--;
+         memmove( objects + i, objects + i + 1,
+                  (n_objects - (size_t)i) * sizeof( object_t));
+         i--;
+         }
+      }
+
+   rval = add_tle_to_obs( objects, n_objects, tle_file_name, search_radius,
                                     max_revs_per_day);
    if( show_summary)
-      for( size_t i = 0; i < n_obs; i += 2)
-         {
-         printf( "\n%.12s ", obs[i].text);
-         for( size_t j = 0; obs[i].matches[j]; j++)
-            printf( " %05d", obs[i].matches[j]);
-         }
+      for( i = 0; (size_t)i < n_objects; i++)
+         if( objects[i].matches[0])
+            {
+            printf( "\n%.12s ", objects[i].obs->text);
+            for( size_t j = 0; objects[i].matches[j]; j++)
+               printf( " %05d", objects[i].matches[j]);
+            }
    free( obs);
+   free( objects);
    get_station_code_data( NULL, NULL);
    printf( "\n%.1f seconds elapsed\n", (double)clock( ) / (double)CLOCKS_PER_SEC);
    return( rval);
