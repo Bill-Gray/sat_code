@@ -1,6 +1,6 @@
 # GNU MAKE Makefile for artsat code and utilities
 #
-# Usage: make [CLANG=Y] [XCOMPILE=Y] [MSWIN=Y] [tgt]
+# Usage: make [XCOMPILE=Y] [MSWIN=Y] [tgt]
 #
 #	where tgt can be any of:
 # [all|get_high|mergetle|obs_tes2|...]
@@ -11,18 +11,14 @@
 #
 #	'XCOMPILE' = cross-compile for Windows,  using MinGW,  on a Linux box
 #	'MSWIN' = compile for Windows,  using MinGW and PDCurses,  on a Windows machine
-#	'CLANG' = use clang instead of GCC;  Linux and BSD only
+#	'CC=clang' or 'CC=g++-4.8' = use clang or older GCC
 #    (I've used gmake CLANG=Y on PC-BSD;  probably works on OS/X too)
-# None of these: compile using g++ on Linux,  for Linux
+# None of these: compile using default g++ on Linux,  for Linux
 #
 
 CC=g++
 EXE=
 RM=rm -f
-
-ifdef CLANG
-	CC=clang
-endif
 
 # I'm using 'mkdir -p' to avoid error messages if the directory exists.
 # It may fail on very old systems,  and will probably fail on non-POSIX
@@ -99,7 +95,7 @@ get_high$(EXE):	 get_high.o get_el.o
 	$(CC) $(CFLAGS) -o get_high$(EXE) get_high.o get_el.o
 
 mergetle$(EXE):	 mergetle.o
-	$(CC) $(CFLAGS) -o mergetle$(EXE) mergetle.o
+	$(CC) $(CFLAGS) -o mergetle$(EXE) mergetle.o -lm
 
 dropouts$(EXE):	 dropouts.o
 	$(CC) $(CFLAGS) -o dropouts$(EXE) dropouts.o
