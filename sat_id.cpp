@@ -390,37 +390,30 @@ static double find_good_pair( OBSERVATION *obs, const size_t n_obs,
                    OBSERVATION **ptr1, OBSERVATION **ptr2)
 {
    size_t a, b;
-   double speed = 0.;
+   double speed = 0., dt;
+   const double max_time_sep = 0.1;  /* .1 day = 2.4 hr */
    double best_score = 1e+30;
 
    *ptr1 = *ptr2 = obs;
-// *ptr2 = obs + n_obs - 1;
-// return( 0);
-   assert( n_obs < 1000);
    for( b = 0; b < n_obs; b++)
-      for( a = b + 1; a < n_obs; a++)
+      for( a = b + 1; a < n_obs
+                        && (dt = obs[a].jd - obs[b].jd) < max_time_sep; a++)
          if( !memcmp( &obs[a].text[77], &obs[b].text[77], 3))
-         {
-         const double max_time_sep = 0.1;  /* .1 day = 2.4 hr */
-         const double optimal_dist = PI / 180.;   /* one degree */
-         const double dist = angular_sep( obs[b].ra - obs[a].ra,
-                           obs[b].dec, obs[a].dec);
-         const double score = fabs( dist - optimal_dist);
-         const double dt = obs[a].jd - obs[b].jd;
-
-         assert( dt >= .0);
-         if( best_score > score
-                  && dt < max_time_sep
-                  && !memcmp( &obs[a].text[77], &obs[b].text[77], 3))
             {
-            best_score = score;
-            *ptr2 = obs + a;
-            *ptr1 = obs + b;
-            speed = dist / dt;
+            const double optimal_dist = PI / 180.;   /* one degree */
+            const double dist = angular_sep( obs[b].ra - obs[a].ra,
+                              obs[b].dec, obs[a].dec);
+            const double score = fabs( dist - optimal_dist);
+
+            assert( dt >= .0);
+            if( best_score > score)
+               {
+               best_score = score;
+               *ptr2 = obs + a;
+               *ptr1 = obs + b;
+               speed = dist / dt;
+               }
             }
-         if( dt > max_time_sep)  /* no need to continue in this loop */
-            a = n_obs;
-         }
    speed *= 180. / PI;    /* cvt speed from radians/day to deg/day */
    speed /= minutes_per_day;    /* ...then to deg/hour = arcmin/minute */
    return( speed);
