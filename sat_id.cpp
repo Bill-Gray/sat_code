@@ -743,8 +743,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       else if( !memcmp( line2, "# MJD ", 6))
          {
          tle_start = atof( line2 + 6) + 2400000.5;
-         look_for_tles = got_obs_in_range( objects, n_objects, tle_start,
-                                 tle_start + tle_range);
+//       look_for_tles = got_obs_in_range( objects, n_objects, tle_start,
+//                               tle_start + tle_range);
          }
       else if( !memcmp( line2, "# Include ", 10))
          {
