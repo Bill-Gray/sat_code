@@ -306,6 +306,7 @@ static int compare_obs( const void *a, const void *b, void *context)
    const OBSERVATION *bptr = (const OBSERVATION *)b;
    int rval = id_compare( aptr, bptr);
 
+   INTENTIONALLY_UNUSED_PARAMETER( context);
    if( !rval)        /* same IDs?  Then sort by JD of observation */
       rval = (aptr->jd > bptr->jd ? 1 : -1);
    return( rval);
@@ -693,10 +694,16 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      printf( "%s", obuff);
                      if( dt && show_computed_motion)
                         {
+                        printf( "              Starting offsets : %.2f %.2f\n",
+                                 xvel * 3600. * (180. / PI),
+                                 yvel * 3600. * (180. / PI));
                         compute_offsets( &xvel, &yvel, ra2 - ra, dec2, dec);
                         compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
                         printf( "             motion %5.2f\"/sec at PA %5.1f (computed)\n",
                             motion_rate, motion_pa);
+                        printf( "              Ending offsets :   %.2f %.2f\n",
+                                 xvel * 3600. * (180. / PI),
+                                 yvel * 3600. * (180. / PI));
                         }
                      printf( "\n");
                      }

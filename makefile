@@ -56,7 +56,7 @@ all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) 
 	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) \
 	dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE)
 
-CFLAGS=-Wextra -Wall -O3 -pedantic -Wno-unused-parameter
+CFLAGS=-Wextra -Wall -O3 -pedantic
 
 clean:
 	$(RM) *.o

@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #else
    #include "cgi_func.h"
 #endif
+#include "watdefs.h"
 
 int sat_id_main( const int argc, const char **argv);
 
@@ -52,6 +53,8 @@ int main( const int unused_argc, const char **unused_argv)
 
    avoid_runaway_process( 15);
 #endif         /* _WIN32 */
+   INTENTIONALLY_UNUSED_PARAMETER( unused_argc);
+   INTENTIONALLY_UNUSED_PARAMETER( unused_argv);
    printf( "Content-type: text/html\n\n");
    printf( "<html> <body> <pre>\n");
    if( !lock_file)
