@@ -29,6 +29,7 @@ int main( const int argc, const char **argv)
           "07004D   THEMIS-D",
           "07004E   THEMIS-E",
           "07004G   THEMIS booster",
+          "12003B ! Delta 4 R/B",
           "15011A ! MMS 1",
           "15011B ! MMS 2",
           "15011C ! MMS 3",
