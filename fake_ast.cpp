@@ -37,6 +37,7 @@ int main( const int argc, const char **argv)
    const char *intl_id = NULL;
    double step_size = .1;
    int i, n_steps = 100;
+   bool show_vectors = false;
 
    if( !ifile)
       {
@@ -52,6 +53,12 @@ int main( const int argc, const char **argv)
                break;
             case 'n':
                n_steps = atoi( argv[i] + 2);
+               break;
+            case 's':
+               step_size = atof( argv[i] + 2);
+               break;
+            case 'v':
+               show_vectors = true;
                break;
             default:
                printf( "Unrecognized option '%s'\n", argv[i]);
@@ -69,6 +76,7 @@ int main( const int argc, const char **argv)
          {                  /* hey! we got a TLE! */
          int is_deep = select_ephemeris( &tle);
          double sat_params[N_SAT_PARAMS], observer_loc[3];
+         double prev_pos[3];
 
          if( err_val)
             printf( "WARNING: TLE parsing error %d\n", err_val);
@@ -80,7 +88,6 @@ int main( const int argc, const char **argv)
             SGP4_init( sat_params, &tle);
          for( i = 0; i < n_steps; i++)
             {
-            double ra, dec, dist_to_satellite;
             double pos[3]; /* Satellite position vector */
             double t_since = (double)( i - n_steps / 2) * step_size;
             double jd = tle.epoch + t_since;
@@ -92,12 +99,26 @@ int main( const int argc, const char **argv)
                err_val = SGP4( t_since, &tle, sat_params, pos, NULL);
             if( err_val)
                printf( "Ephemeris error %d\n", err_val);
-            get_satellite_ra_dec_delta( observer_loc, pos,
+            if( show_vectors)
+               {
+               if( i)
+                  printf( "%14.6f %14.6f %14.6f - ", pos[0] - prev_pos[0],
+                                                 pos[1] - prev_pos[1],
+                                                 pos[2] - prev_pos[2]);
+               printf( "%14.6f %14.6f %14.6f\n", pos[0], pos[1], pos[2]);
+               memcpy( prev_pos, pos, 3 * sizeof( double));
+               }
+            else
+               {
+               double ra, dec, dist_to_satellite;
+
+               get_satellite_ra_dec_delta( observer_loc, pos,
                                  &ra, &dec, &dist_to_satellite);
-            epoch_of_date_to_j2000( jd, &ra, &dec);
-            printf( "%-14sC%13.5f    %08.4f    %+08.4f",
+               epoch_of_date_to_j2000( jd, &ra, &dec);
+               printf( "%-14sC%13.5f    %08.4f    %+08.4f",
                      intl_id, jd, ra * 180. / PI, dec * 180. / PI);
-            printf( "                    TLEs 500\n");
+               printf( "                    TLEs 500\n");
+               }
             }
          }
       strcpy( line1, line2);
