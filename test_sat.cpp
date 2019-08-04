@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #include <string.h>
 #include "norad.h"
 
+#define INTENTIONALLY_UNUSED_PARAMETER( param) (void)(param)
+
 static double test_data[5 * 6 * 5] = {
 
                         /* SGP: */
@@ -134,6 +136,7 @@ int main( const int argc, const char **unused_argv)
       "1 23246U 91015G   01311.70347086  .00004957  00000-0  43218-2 0  8190",
       "2 23246   7.1648 263.6949 5661268 241.8299  50.5793  4.44333001129208" };
 
+   INTENTIONALLY_UNUSED_PARAMETER( unused_argv);
    for( i = 1; i <= 17; i++)  /* Loop for each type of ephemeris */
       {
       int tle_idx = ((i - 2) / 2) * 2, err_code;

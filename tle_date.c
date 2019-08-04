@@ -136,7 +136,7 @@ int get_urlencoded_form_data( const char **idata,       /* cgi_func.c */
                               char *field, const size_t max_field,
                               char *buff, const size_t max_buff);
 
-int main( const int unused_argc, const char **unused_argv)
+int main( void)
 {
    const char *argv[20];
    const size_t max_buff_size = 40000;
