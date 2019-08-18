@@ -711,13 +711,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                }
             }
          }
-      else if( !memcmp( line2, "# No updates", 12))
+      else if( !strncmp( line2, "# No updates", 12))
          check_updates = false;
-      else if( !memcmp( line2, "# Max error",  11))
+      else if( !strncmp( line2, "# Max error",  11))
          max_expected_error = atof( line2 + 12);
-      else if( !memcmp( line2, "# TLEs expected:", 16))
+      else if( !strncmp( line2, "# TLEs expected:", 16))
          n_tles_expected_in_file = atoi( line2 + 17);
-      else if( !memcmp( line2, "# Ephem range:", 14))
+      else if( !strncmp( line2, "# Ephem range:", 14))
          {
          const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
          double mjd_start, mjd_end;
