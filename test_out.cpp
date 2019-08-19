@@ -74,38 +74,6 @@ void greg_day_to_dmy( const long jd, int *day,
       }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* Example code to add BSTAR data using Ted Molczan's method.  It just
    reads in TLEs,  computes BSTAR if possible,  then writes out the
    resulting modified TLE.
