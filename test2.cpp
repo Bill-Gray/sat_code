@@ -75,9 +75,9 @@ int main( int argc, char **argv)
    if( fgets( line1, sizeof( line1), ifile))
       while( fgets( line2, sizeof( line2), ifile))
          {
-         if( !memcmp( line2, "Ephem ", 6))
+         if( !strncmp( line2, "Ephem ", 6))
             ephem = (line2[6] - '0');
-         else if( !memcmp( line2, "Dundee ", 7))
+         else if( !strncmp( line2, "Dundee ", 7))
             {
             double t0, step;
 
@@ -87,7 +87,7 @@ int main( int argc, char **argv)
             sxpx_set_implementation_param( SXPX_DUNDEE_COMPLIANCE, 1);
             dundee_output = 1;
             }
-         else if( !memcmp( line2, "Times: ", 7))
+         else if( !strncmp( line2, "Times: ", 7))
             {
             int loc = 7, bytes_read;
 
