@@ -58,6 +58,10 @@ all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) 
 
 CFLAGS=-Wextra -Wall -O3 -pedantic
 
+ifdef DEBUG
+	CFLAGS += -g
+endif
+
 clean:
 	$(RM) *.o
 	$(RM) get_high$(EXE)
