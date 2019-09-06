@@ -116,6 +116,9 @@ fake_ast$(EXE):	 fake_ast.o observe.o libsatell.a
 fix_tles$(EXE):	 fix_tles.o libsatell.a
 	$(CC) $(CFLAGS) -o fix_tles$(EXE) fix_tles.o libsatell.a -lm
 
+get_vect$(EXE):	 	get_vect.cpp	observe.o libsatell.a
+	$(CC) $(CFLAGS) -o get_vect$(EXE) -I $(INCL) get_vect.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
+
 out_comp$(EXE):	 out_comp.o
 	$(CC) $(CFLAGS) -o out_comp$(EXE) out_comp.o -lm
 
