@@ -146,12 +146,14 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
    return( 0);
 }
 
+#if !defined( _WIN32)
 void make_config_dir_name( char *oname, const char *iname)
 {
    strcpy( oname, getenv( "HOME"));
    strcat( oname, "/.find_orb/");
    strcat( oname, iname);
 }
+#endif
 
 /* This loads up the file 'ObsCodes.html' into memory on its first call.
 Then,  given an MPC code,  it finds the corresponding line and copies
@@ -184,6 +186,7 @@ static int get_station_code_data( char *station_code_data,
 
       for( i = 0; !ifile && i < 2; i++)
          ifile = fopen( filenames[i], "rb");
+#if !defined( _WIN32)
       for( i = 0; !ifile && i < 2; i++)
          {
          char filename[255];
@@ -191,7 +194,7 @@ static int get_station_code_data( char *station_code_data,
          make_config_dir_name( filename, filenames[i]);
          ifile = fopen( filename, "rb");
          }
-
+#endif
       if( !ifile)
          {
          printf( "Failed to find MPC station list 'ObsCodes.html'\n");
@@ -701,9 +704,9 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                         compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
                         printf( "             motion %5.2f\"/sec at PA %5.1f (computed)\n",
                             motion_rate, motion_pa);
-                        printf( "              Ending offsets :   %.2f %.2f\n",
+                        printf( "              Ending offsets :   %.2f %.2f (dt = %f min)\n",
                                  xvel * 3600. * (180. / PI),
-                                 yvel * 3600. * (180. / PI));
+                                 yvel * 3600. * (180. / PI), dt * minutes_per_day);
                         }
                      printf( "\n");
                      }
@@ -760,7 +763,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             char iname[255];
             size_t i = strlen( tle_file_name);
 
-            while( i && tle_file_name[i - 1] != '/')
+            while( i && tle_file_name[i - 1] != '/' && tle_file_name[i - 1] != '\\')
                i--;
             memcpy( iname, tle_file_name, i);
             strcpy( iname + i, line2 + 10);
@@ -820,7 +823,7 @@ int main( const int argc, const char **argv)
    double speed_cutoff = 0.001;
    double t_low = 2435839.5;  /* no satellites before 1957 Jan 1 */
    double t_high = 3000000.5;
-   int rval, i, prev_i;
+   int rval, i, j, prev_i;
    bool show_summary = false;
 
    if( argc == 1)
@@ -916,20 +919,19 @@ int main( const int argc, const char **argv)
          prev_i = i;
          }
    objects[n_objects - 1].n_obs = i - prev_i;
-   for( i = 0; (size_t)i < n_objects; i++)
+   for( i = j = 0; (size_t)i < n_objects; i++)
       {
       objects[i].speed = find_good_pair( objects[i].obs,
                   objects[i].n_obs, &objects[i].idx1, &objects[i].idx2);
-      if( objects[i].speed < speed_cutoff)
-         {               /* too slow to be considered */
-         n_objects--;
-         memmove( objects + i, objects + i + 1,
-                  (n_objects - (size_t)i) * sizeof( object_t));
-         i--;
+      if( objects[i].speed >= speed_cutoff &&
+              (objects[i].n_obs > 1 || include_singletons))
+         {               /* fast enough to be considered */
+         objects[j] = objects[i];
+         j++;
          }
       }
-   if( speed_cutoff)
-      printf( "%u objects after removing slow ones\n", (unsigned)n_objects);
+   n_objects = j;
+   printf( "%u objects after removing slow ones\n", (unsigned)n_objects);
    rval = add_tle_to_obs( objects, n_objects, tle_file_name, search_radius,
                                     max_revs_per_day);
    if( show_summary)
