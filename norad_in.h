@@ -38,8 +38,8 @@ typedef struct
    atime, del1, del2, del3, e3, ee2, omegaq, pe, pgh, ph, pinc, pl, preep,
    savtsn, se2, se3, sgh2, sgh3, sgh4, sh2, sh3, si2, si3, sl2, sl3,
    sl4, sse, ssg, ssh, ssi, ssl, thgr, xfact, xgh2, xgh3, xgh4, xh2,
-   xh3, xi2, xi3, xl2, xl3, xl4, xlamo, xli, xni, xnq, xqncl, zcosgl,
-   zcoshl, zcosil, zmol, zmos, zsingl, zsinhl, zsinil;
+   xh3, xi2, xi3, xl2, xl3, xl4, xlamo, xli, xni, xnq,
+   zmol, zmos;
 
          /* Epoch offsets,  described by Rob Matson,  added by BJG, */
          /* then commented out;  I don't think they really ought to */

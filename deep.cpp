@@ -146,19 +146,14 @@ void Deep_dpinit( const tle_t *tle, deep_arg_t *deep_arg)
    double ze = zes, zn = zns_per_min;
    double sgh, sh, si;
    double zsinh = sinq, zcosh = cosq;
+   double zcosil, zsinil, zcoshl, zsinhl;
+   double zcosgl, zsingl;
    double sl;
    int iteration;
 
    deep_arg->thgr = ThetaG( tle->epoch);
    deep_arg->xnq = deep_arg->xnodp;
-   deep_arg->xqncl = tle->xincl;
    deep_arg->omegaq = tle->omegao;
-
-   /* If the epoch has changed,  recompute (or initialize) the lunar and */
-   /* solar terms... except that now that zcosil, etc. are within the    */
-   /* deep_arg structure,  instead of static,  they must _always_ be     */
-   /* recomputed.  So I've commented out the 'if' part.  (Revision made  */
-   /* 14 May 2005)                                                       */
 
 /* if( days_since_1900 != deep_arg->preep)   */
       {
@@ -171,16 +166,16 @@ void Deep_dpinit( const tle_t *tle, deep_arg_t *deep_arg)
       double zx, zy;
 
       deep_arg->preep = days_since_1900;
-      deep_arg->zcosil = 0.91375164 - 0.03568096 * cos_asc_node;
-      deep_arg->zsinil = sqrt(1. - deep_arg->zcosil * deep_arg->zcosil);
-      deep_arg->zsinhl = 0.089683511 * sin_asc_node / deep_arg->zsinil;
-      deep_arg->zcoshl = sqrt(1. - deep_arg->zsinhl*deep_arg->zsinhl);
+      zcosil = 0.91375164 - 0.03568096 * cos_asc_node;
+      zsinil = sqrt(1. - zcosil * zcosil);
+      zsinhl = 0.089683511 * sin_asc_node / zsinil;
+      zcoshl = sqrt(1. - zsinhl*zsinhl);
       deep_arg->zmol = FMod2p( c_minus_gam);
-      zx = zsini0 * sin_asc_node / deep_arg->zsinil;
-      zy = deep_arg->zcoshl * cos_asc_node + zcosi0 * deep_arg->zsinhl * sin_asc_node;
+      zx = zsini0 * sin_asc_node / zsinil;
+      zy = zcoshl * cos_asc_node + zcosi0 * zsinhl * sin_asc_node;
       zx = atan2( zx, zy) + gam - lunar_asc_node;
-      deep_arg->zcosgl = cos( zx);
-      deep_arg->zsingl = sin( zx);
+      zcosgl = cos( zx);
+      zsingl = sin( zx);
       deep_arg->zmos = FMod2p( 6.2565837
                      + zns_per_day * days_since_1900);
       } /* End if( days_since_1900 != deep_arg->preep) */
@@ -242,7 +237,7 @@ void Deep_dpinit( const tle_t *tle, deep_arg_t *deep_arg)
       si = s2*zn*(z11+z13);
       sl = -zn*s3*(z1+z3-14-6*deep_arg->eosq);
       sgh = s4*zn*(z31+z33-6);
-      if (deep_arg->xqncl < pi / 60.)      /* pi / 60 radians = 3 degrees */
+      if( tle->xincl < pi / 60.)      /* pi / 60 radians = 3 degrees */
          sh = 0;
       else
          sh = -zn*s2*(z21+z23);
@@ -278,12 +273,12 @@ void Deep_dpinit( const tle_t *tle, deep_arg_t *deep_arg)
          deep_arg->sh3 = deep_arg->xh3;
          deep_arg->sl4 = deep_arg->xl4;
          deep_arg->sgh4 = deep_arg->xgh4;
-         zcosg = deep_arg->zcosgl;
-         zsing = deep_arg->zsingl;
-         zcosi = deep_arg->zcosil;
-         zsini = deep_arg->zsinil;
-         zcosh = deep_arg->zcoshl*cosq+deep_arg->zsinhl*sinq;
-         zsinh = sinq*deep_arg->zcoshl-cosq*deep_arg->zsinhl;
+         zcosg = zcosgl;
+         zsing = zsingl;
+         zcosi = zcosil;
+         zsini = zsinil;
+         zcosh = zcoshl * cosq + zsinhl * sinq;
+         zsinh = sinq * zcoshl - cosq * zsinhl;
          zn = znl_per_min;
          cc = c1l;
          ze = zel;
@@ -439,6 +434,9 @@ void Deep_dpinit( const tle_t *tle, deep_arg_t *deep_arg)
       }
    /* End case dpinit: */
 }
+
+/* 'dpsec' is unavoidably confusing.  See https://projectpluto.com/dpsec.htm
+for some commentary on what's going on here. */
 
 static inline void compute_dpsec_derivs( const deep_arg_t *deep_arg,
                                            double *derivs)

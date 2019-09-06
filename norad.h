@@ -44,9 +44,9 @@ typedef struct
    /* xno = mean motion at epoch,  radians/minute*/
 
 #ifdef RETAIN_PERTURBATION_VALUES_AT_EPOCH
-   #define DEEP_ARG_T_PARAMS     94
+   #define DEEP_ARG_T_PARAMS     87
 #else
-   #define DEEP_ARG_T_PARAMS     88
+   #define DEEP_ARG_T_PARAMS     81
 #endif
 
 #define N_SGP_PARAMS          11
