@@ -86,7 +86,7 @@ install:
 	cp libsatell.a $(INSTALL_DIR)/lib
 	cp norad.h     $(INSTALL_DIR)/include
 	$(MKDIR) $(INSTALL_DIR)/bin
-	cp sat_id      $(INSTALL_DIR)/bin
+	cp sat_id$(EXE)  $(INSTALL_DIR)/bin
 
 uninstall:
 	rm $(INSTALL_DIR)/lib/libsatell.a
