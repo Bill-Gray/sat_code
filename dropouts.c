@@ -35,6 +35,7 @@ int main( const int argc, const char **argv)
           "15011C ! MMS 3",
           "15011D ! MMS 4",
           "15019C   YZ-1 booster",
+          "65058B   Vela 6",
           "67040F ! Titan 3C transtage booster",
           "69046F   Titan 3C transtage booster",
           "77093E   SL-6 R/B(2)",
