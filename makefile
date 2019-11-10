@@ -1,6 +1,6 @@
 # GNU MAKE Makefile for artsat code and utilities
 #
-# Usage: make [XCOMPILE=Y] [MSWIN=Y] [tgt]
+# Usage: make [W64=Y] [W32=Y] [MSWIN=Y] [tgt]
 #
 #	where tgt can be any of:
 # [all|get_high|mergetle|obs_tes2|...]
@@ -9,7 +9,8 @@
 # 'make tle_date.cgi' separately;  they have a dependency on the 'lunar'
 # library (also on my GitHub site).
 #
-#	'XCOMPILE' = cross-compile for Windows,  using MinGW,  on a Linux box
+#	'W64'/'W32' = cross-compile for 64- or 32-bit Windows,  using MinGW,
+#     on a Linux box
 #	'MSWIN' = compile for Windows,  using MinGW and PDCurses,  on a Windows machine
 #	'CC=clang' or 'CC=g++-4.8' = use clang or older GCC
 #    (I've used gmake CLANG=Y on PC-BSD;  probably works on OS/X too)
@@ -31,12 +32,18 @@ else
 	MKDIR=mkdir -p
 endif
 
-LIBSADDED=-L $(INSTALL_DIR)/lib
+LIB_DIR=$(INSTALL_DIR)/lib
 
-ifdef XCOMPILE
+ifdef W64
 	CC=x86_64-w64-mingw32-g++
 	EXE=.exe
-	LIBSADDED=-L $(INSTALL_DIR)/win_lib
+	LIB_DIR=$(INSTALL_DIR)/win_lib
+endif
+
+ifdef W32
+	CC=i686-w64-mingw32-g++
+	EXE=.exe
+	LIB_DIR=$(INSTALL_DIR)/win_lib32
 endif
 
 # You can have your include files in ~/include and libraries in
@@ -82,8 +89,8 @@ clean:
 	$(RM) test_sat$(EXE)
 
 install:
-	$(MKDIR) $(INSTALL_DIR)/lib
-	cp libsatell.a $(INSTALL_DIR)/lib
+	$(MKDIR) $(LIB_DIR)
+	cp libsatell.a $(LIB_DIR)
 	cp norad.h     $(INSTALL_DIR)/include
 	$(MKDIR) $(INSTALL_DIR)/bin
 	cp sat_id$(EXE)  $(INSTALL_DIR)/bin
@@ -117,7 +124,7 @@ fix_tles$(EXE):	 fix_tles.o libsatell.a
 	$(CC) $(CFLAGS) -o fix_tles$(EXE) fix_tles.o libsatell.a -lm
 
 get_vect$(EXE):	 	get_vect.cpp	observe.o libsatell.a
-	$(CC) $(CFLAGS) -o get_vect$(EXE) -I $(INCL) get_vect.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
+	$(CC) $(CFLAGS) -o get_vect$(EXE) -I $(INCL) get_vect.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 out_comp$(EXE):	 out_comp.o
 	$(CC) $(CFLAGS) -o out_comp$(EXE) out_comp.o -lm
@@ -127,22 +134,22 @@ libsatell.a: $(OBJS)
 	ar rv libsatell.a $(OBJS)
 
 sat_id$(EXE):	 	sat_id.cpp	observe.o libsatell.a
-	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
+	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp observe.o  libsatell.a
-	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp observe.o libsatell.a -lm $(LIBSADDED) -llunar
+	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 test2$(EXE):	 	test2.o sgp.o libsatell.a
 	$(CC) $(CFLAGS) -o test2$(EXE) test2.o sgp.o libsatell.a -lm
 
 tle_date$(EXE):	 	tle_date.o
-	$(CC) $(CFLAGS) -o tle_date$(EXE) tle_date.o $(LIBSADDED) -llunar
+	$(CC) $(CFLAGS) -o tle_date$(EXE) tle_date.o -L $(LIB_DIR) -llunar
 
 tle_date.o: tle_date.c
 	$(CC) $(CFLAGS) -o tle_date.o -c -I../include tle_date.c
 
 tle_date.cgi:	 	tle_date.c
-	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c $(LIBSADDED) -llunar
+	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c -L $(LIB_DIR) -llunar
 
 test_out$(EXE):	 test_out.o tle_out.o get_el.o sgp4.o common.o
 	$(CC) $(CFLAGS) -o test_out$(EXE) test_out.o tle_out.o get_el.o sgp4.o common.o -lm
