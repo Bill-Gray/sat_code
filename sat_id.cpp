@@ -572,10 +572,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    const clock_t time_started = clock( );
 
    if( !tle_file)
-      {
-      printf( "Couldn't open TLE file %s\n", tle_file_name);
       return( -1);
-      }
    if( verbose)
       printf( "Looking through TLE file '%s', %u objs, radius %f, max %f revs/day\n",
                  tle_file_name, (unsigned)n_objects, search_radius, max_revs_per_day);
@@ -805,7 +802,7 @@ int sat_id_main( const int argc, const char **argv)
 int main( const int argc, const char **argv)
 #endif
 {
-   const char *tle_file_name = "tle_list.txt";
+   char tle_file_name[256];
    FILE *ifile;
    OBSERVATION *obs;
    object_t *objects;
@@ -831,6 +828,20 @@ int main( const int argc, const char **argv)
       printf( "No input file of astrometry specified on command line\n\n");
       error_exit( -2);
       }
+
+#if !defined( _WIN32)
+   make_config_dir_name( tle_file_name, "tles/tle_list.txt");
+   ifile = fopen( tle_file_name, "rb");
+   if( ifile)
+      fclose( ifile);
+   else
+      {
+      strcpy( tle_file_name, getenv( "HOME"));
+      strcat( tle_file_name, "/tles/tle_list.txt");
+      }
+#else
+   strcpy( tle_file_name( "tle_list.txt"));
+#endif
 
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-')
@@ -866,7 +877,7 @@ int main( const int argc, const char **argv)
                show_computed_motion = true;
                break;
             case 't':
-               tle_file_name = param;
+               strcpy( tle_file_name, param);
                break;
             case 'u':
                show_summary = true;
@@ -934,9 +945,11 @@ int main( const int argc, const char **argv)
    printf( "%u objects after removing slow ones\n", (unsigned)n_objects);
    rval = add_tle_to_obs( objects, n_objects, tle_file_name, search_radius,
                                     max_revs_per_day);
-   if( show_summary)
+   if( rval)
+      fprintf( stderr, "Couldn't open TLE file %s\n", tle_file_name);
+   else if( show_summary)
       for( i = 0; (size_t)i < n_objects; i++)
-         if( objects[i].matches[0])
+//       if( objects[i].matches[0])
             {
             printf( "\n%.12s ", objects[i].obs->text);
             for( size_t j = 0; objects[i].matches[j]; j++)
