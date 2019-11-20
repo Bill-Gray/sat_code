@@ -76,6 +76,7 @@ should be used,  and the others are suppressed.       */
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 #if defined( _WIN32) || defined( __WATCOMC__)
    #include <malloc.h>     /* for alloca() prototype */
 #endif
@@ -794,7 +795,12 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
 /* The "on-line version",  sat_id2,  gathers data from a CGI multipart form,
    puts it into a file,  possibly adds in some options,  puts together the
- command-line arguments,  and then calls sat_id_main.  See 'sat_id2.cpp'. */
+   command-line arguments,  and then calls sat_id_main.  See 'sat_id2.cpp'.
+
+   By default,  TLE information is drawn from 'tle_list.txt';  this can
+   be overridden with the -t (filename) option.  The specified file is first
+   searched for in the current directory,  then in ~/.find_orb,  then in
+   ~/.find_orb/tles,  then in ~/tles.    */
 
 #ifdef ON_LINE_VERSION
 int sat_id_main( const int argc, const char **argv)
@@ -803,6 +809,7 @@ int main( const int argc, const char **argv)
 #endif
 {
    char tle_file_name[256];
+   const char *tname = "tle_list.txt";
    FILE *ifile;
    OBSERVATION *obs;
    object_t *objects;
@@ -828,20 +835,6 @@ int main( const int argc, const char **argv)
       printf( "No input file of astrometry specified on command line\n\n");
       error_exit( -2);
       }
-
-#if !defined( _WIN32)
-   make_config_dir_name( tle_file_name, "tles/tle_list.txt");
-   ifile = fopen( tle_file_name, "rb");
-   if( ifile)
-      fclose( ifile);
-   else
-      {
-      strcpy( tle_file_name, getenv( "HOME"));
-      strcat( tle_file_name, "/tles/tle_list.txt");
-      }
-#else
-   strcpy( tle_file_name( "tle_list.txt"));
-#endif
 
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-')
@@ -877,7 +870,7 @@ int main( const int argc, const char **argv)
                show_computed_motion = true;
                break;
             case 't':
-               strcpy( tle_file_name, param);
+               tname = param;
                break;
             case 'u':
                show_summary = true;
@@ -900,6 +893,34 @@ int main( const int argc, const char **argv)
    if( verbose)
       for( i = 0; i < argc; i++)
          printf( "Arg %d: '%s'\n", i, argv[i]);
+
+   strcpy( tle_file_name, tname);
+#if !defined( _WIN32)
+   if( access( tle_file_name, F_OK))
+      {
+      if( verbose)
+         fprintf( stderr, "'%s' failed\n", tle_file_name);
+      make_config_dir_name( tle_file_name, tname);
+      if( access( tle_file_name, F_OK))
+         {
+         char buff[256];
+
+         if( verbose)
+            fprintf( stderr, "'%s' failed\n", tle_file_name);
+         strcpy( buff, "tles/");
+         strcat( buff, tname);
+         make_config_dir_name( tle_file_name, buff);
+         if( access( tle_file_name, F_OK))
+            {
+            if( verbose)
+               fprintf( stderr, "'%s' failed\n", tle_file_name);
+            strcpy( tle_file_name, getenv( "HOME"));
+            strcat( tle_file_name, "/tles/");
+            strcat( tle_file_name, tname);
+            }
+         }
+      }
+#endif
 
    ifile = fopen( argv[1], "rb");
    if( !ifile)
@@ -946,7 +967,7 @@ int main( const int argc, const char **argv)
    rval = add_tle_to_obs( objects, n_objects, tle_file_name, search_radius,
                                     max_revs_per_day);
    if( rval)
-      fprintf( stderr, "Couldn't open TLE file %s\n", tle_file_name);
+      fprintf( stderr, "Couldn't open TLE file %s\n", tname);
    else if( show_summary)
       for( i = 0; (size_t)i < n_objects; i++)
 //       if( objects[i].matches[0])
