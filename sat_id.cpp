@@ -828,6 +828,7 @@ int main( const int argc, const char **argv)
 {
    char tle_file_name[256];
    const char *tname = "tle_list.txt";
+   const char *output_astrometry_filename = NULL;
    FILE *ifile;
    OBSERVATION *obs;
    object_t *objects;
@@ -883,6 +884,9 @@ int main( const int argc, const char **argv)
                break;
             case 'n':
                norad_id = atoi( param);
+               break;
+            case 'o':
+               output_astrometry_filename = param;
                break;
             case 's':
                show_computed_motion = true;
@@ -947,7 +951,6 @@ int main( const int argc, const char **argv)
       return( -1);
       }
    obs = get_observations_from_file( ifile, &n_obs, t_low, t_high);
-   fclose( ifile);
    printf( "%d observations found\n", (int)n_obs);
    if( !obs || !n_obs)
       return( -2);
@@ -997,6 +1000,42 @@ int main( const int argc, const char **argv)
                printf( " %05d %s", objects[i].matches[j].norad_number,
                          unpack_intl( objects[i].matches[j].intl_desig, buff));
             }
+   if( output_astrometry_filename)
+      {
+      FILE *ofile = fopen( output_astrometry_filename, "wb");
+
+      if( !ofile)
+         {
+         fprintf( stderr, "Couldn't open '%s' :", output_astrometry_filename);
+         perror( NULL);
+         }
+      else
+         {
+         char buff[256];
+
+         fseek( ifile, 0L, SEEK_SET);
+         while( fgets( buff, sizeof( buff), ifile))
+            {
+            if( strlen( buff) > 80 && buff[80] < ' ')
+               {
+               char tbuff[30];
+
+               for( i = 0; (size_t)i < n_objects; i++)
+                  if( !memcmp( objects[i].obs->text, buff, 12) &&
+                               objects[i].matches[0].norad_number)
+                     {
+                     fprintf( ofile, "COM %05dU = %s\n",
+                         objects[i].matches[0].norad_number,
+                         unpack_intl( objects[i].matches[0].intl_desig, tbuff));
+                     objects[i].matches[0].norad_number = 0;
+                     }
+               }
+            fputs( buff, ofile);
+            }
+         fclose( ofile);
+         }
+      }
+   fclose( ifile);
    free( obs);
    free( objects);
    get_station_code_data( NULL, NULL);
