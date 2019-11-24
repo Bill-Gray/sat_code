@@ -263,44 +263,39 @@ for them,  then reads them again to actually load the observations. */
 static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          const double t_low, const double t_high)
 {
-   int pass;
    OBSERVATION *rval = NULL, obs;
    void *ades_context = init_ades2mpc( );
+   char buff[400];
+   size_t count = 0, n_allocated = 0;
 
    assert( ades_context);
    memset( &obs, 0, sizeof( OBSERVATION));
-   for( pass = 0; pass < 2; pass++)
-      {
-      char buff[400];
-      size_t count = 0;
+   while( fgets_with_ades_xlation( buff, sizeof( buff), ades_context, ifile))
+      if( !get_mpc_data( &obs, buff) && obs.jd > t_low
+                                     && obs.jd < t_high)
+         {
+         char station_data[100];
 
-      fseek( ifile, 0L, SEEK_SET);
-      while( fgets_with_ades_xlation( buff, sizeof( buff), ades_context, ifile))
-         if( !get_mpc_data( &obs, buff) && obs.jd > t_low
-                                        && obs.jd < t_high)
+         j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
+         if( get_station_code_data( station_data, obs.text + 77))
+            printf( "FAILED to find MPC code %s\n", obs.text + 77);
+         sscanf( station_data + 3, "%lf %lf %lf", &obs.lon,
+                                  &obs.rho_cos_phi, &obs.rho_sin_phi);
+         obs.lon *= PI / 180.;
+         if( count == n_allocated)
             {
-            if( rval)
-               {
-               char station_data[100];
-
-               j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
-               if( get_station_code_data( station_data, obs.text + 77))
-                  printf( "FAILED to find MPC code %s\n", obs.text + 77);
-               sscanf( station_data + 3, "%lf %lf %lf", &obs.lon,
-                                        &obs.rho_cos_phi, &obs.rho_sin_phi);
-               obs.lon *= PI / 180.;
-               rval[count] = obs;
-               }
-            count++;
+            n_allocated += 10 + n_allocated / 2;
+            rval = (OBSERVATION *)realloc( rval,
+                                 (n_allocated + 1) * sizeof( OBSERVATION));
             }
-         else if( !strcmp( buff, "COM ignore obs"))
-            while( fgets_trimmed( buff, sizeof( buff), ifile))
-               if( !strcmp( buff, "COM end ignore obs"))
-                  break;
-      if( !pass && count)
-         rval = (OBSERVATION *)calloc( count + 1, sizeof( OBSERVATION));
-      *n_found = count;
-      }
+         rval[count] = obs;
+         count++;
+         }
+      else if( !strcmp( buff, "COM ignore obs"))
+         while( fgets_trimmed( buff, sizeof( buff), ifile))
+            if( !strcmp( buff, "COM end ignore obs"))
+               break;
+   *n_found = count;
    free_ades2mpc_context( ades_context);
    return( rval);
 }
