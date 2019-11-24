@@ -112,10 +112,16 @@ OBSERVATION
 
 typedef struct
 {
+   int norad_number;
+   char intl_desig[9];
+} match_t;
+
+typedef struct
+{
    OBSERVATION *obs;
    size_t idx1, idx2, n_obs;
    double speed;
-   int matches[MAX_MATCHES];
+   match_t matches[MAX_MATCHES];
 } object_t;
 
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
@@ -622,12 +628,12 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                compute_offsets( &dx, &dy, ra - optr1->ra, dec, optr1->dec);
                radius = sqrt( dx * dx + dy * dy) * 180. / PI;
                while( n_matches < MAX_MATCHES - 1
-                       && obj_ptr->matches[n_matches] != tle.norad_number
-                       && obj_ptr->matches[n_matches])
+                       && obj_ptr->matches[n_matches].norad_number != tle.norad_number
+                       && obj_ptr->matches[n_matches].norad_number)
                   n_matches++;
                if( !sxpx_rval && radius < search_radius      /* good enough for us! */
                        && radius < max_expected_error
-                       && !obj_ptr->matches[n_matches])
+                       && !obj_ptr->matches[n_matches].norad_number)
                   {
                   double dx1, dy1;
                   const double dt = optr2->jd - optr1->jd;
@@ -662,7 +668,9 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
-                     obj_ptr->matches[n_matches] = tle.norad_number;
+                     obj_ptr->matches[n_matches].norad_number = tle.norad_number;
+                     strncpy( obj_ptr->matches[n_matches].intl_desig,
+                                                      tle.intl_desig, 9);
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
@@ -791,6 +799,16 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       }
    fclose( tle_file);
    return( rval);
+}
+
+/* Given a 'packed' international designation such as 92044A or
+10050BZ,  this outputs the 'unpacked/ desig 1992-044A or 2010-050BZ. */
+
+static char *unpack_intl( const char *packed, char *unpacked)
+{
+   snprintf( unpacked, 10, "%s%.2s-%s",
+            (atoi( packed) > 57000 ? "19" : "20"), packed, packed + 2);
+   return( unpacked);
 }
 
 /* The "on-line version",  sat_id2,  gathers data from a CGI multipart form,
@@ -972,9 +990,12 @@ int main( const int argc, const char **argv)
       for( i = 0; (size_t)i < n_objects; i++)
 //       if( objects[i].matches[0])
             {
+            char buff[30];
+
             printf( "\n%.12s ", objects[i].obs->text);
-            for( size_t j = 0; objects[i].matches[j]; j++)
-               printf( " %05d", objects[i].matches[j]);
+            for( size_t j = 0; objects[i].matches[j].norad_number; j++)
+               printf( " %05d %s", objects[i].matches[j].norad_number,
+                         unpack_intl( objects[i].matches[j].intl_desig, buff));
             }
    free( obs);
    free( objects);
