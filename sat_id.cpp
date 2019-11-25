@@ -112,6 +112,7 @@ OBSERVATION
 
 typedef struct
 {
+   double dist;
    int norad_number;
    char intl_desig[9];
 } match_t;
@@ -655,6 +656,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      char full_intl_desig[20];
                      double xvel, yvel;
                      double motion_rate = 0., motion_pa = 0.;
+                     size_t i;
 
                      compute_offsets( &xvel, &yvel, optr2->ra - optr1->ra,
                                                     optr2->dec, optr1->dec);
@@ -663,8 +665,14 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
-                     obj_ptr->matches[n_matches].norad_number = tle.norad_number;
-                     strncpy( obj_ptr->matches[n_matches].intl_desig,
+                     i = 0;
+                     while( i < n_matches && radius > obj_ptr->matches[i].dist)
+                        i++;
+                     memmove( obj_ptr->matches + i + 1, obj_ptr->matches + i,
+                              (n_matches - i) * sizeof( match_t));
+                     obj_ptr->matches[i].dist = radius;
+                     obj_ptr->matches[i].norad_number = tle.norad_number;
+                     strncpy( obj_ptr->matches[i].intl_desig,
                                                       tle.intl_desig, 9);
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
