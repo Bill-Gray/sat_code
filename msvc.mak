@@ -32,7 +32,7 @@ obs_tes2.exe: obs_tes2.obj observe.obj sat_code.lib
    $(LINK)    obs_tes2.obj observe.obj sat_code.lib
 
 sat_id.exe: sat_id.obj observe.obj sat_code.lib
-   $(LINK)  sat_id.obj observe.obj sat_code.lib
+   $(LINK)  sat_id.obj observe.obj sat_code.lib lunar.lib
 
 out_comp.exe: out_comp.obj
    $(LINK)    out_comp.obj
