@@ -76,9 +76,16 @@ should be used,  and the others are suppressed.       */
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <unistd.h>
 #if defined( _WIN32) || defined( __WATCOMC__)
    #include <malloc.h>     /* for alloca() prototype */
+#else
+   #include <unistd.h>
+#endif
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+                      /* For older MSVCs,  we have to supply our own  */
+                      /* snprintf().  See snprintf.cpp for details.  */
+int snprintf( char *string, const size_t max_len, const char *format, ...);
 #endif
 
 #if defined( __has_include)
