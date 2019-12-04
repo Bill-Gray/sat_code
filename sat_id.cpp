@@ -673,7 +673,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
                      i = 0;
-                     while( i < n_matches && radius > obj_ptr->matches[i].dist)
+                     while( (int)i < n_matches && radius > obj_ptr->matches[i].dist)
                         i++;
                      memmove( obj_ptr->matches + i + 1, obj_ptr->matches + i,
                               (n_matches - i) * sizeof( match_t));
