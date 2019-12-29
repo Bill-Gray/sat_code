@@ -131,27 +131,19 @@ int main( const int argc, const char **argv)
 }
 
 #ifdef ON_LINE_VERSION
-void avoid_runaway_process( const int max_time_to_run);   /* cgi_func.c */
-int get_urlencoded_form_data( const char **idata,       /* cgi_func.c */
-                              char *field, const size_t max_field,
-                              char *buff, const size_t max_buff);
+#include <cgi_func.h>
 
 int main( void)
 {
    const char *argv[20];
    const size_t max_buff_size = 40000;
    char *buff = (char *)malloc( max_buff_size);
-   char *idata = (char *)malloc( max_buff_size);
-   const char *tptr = idata;
    char field[30], date_text[80];
    FILE *lock_file = fopen( "lock.txt", "w");
    extern char **environ;
+   int cgi_status;
 
    avoid_runaway_process( 15);
-   *idata = '\0';
-   for( size_t i = 0; environ[i]; i++)
-      if( !memcmp( environ[i], "QUERY_STRING=", 13))
-         strcpy( idata, environ[i] + 13);
    printf( "Content-type: text/html\n\n");
    printf( "<html> <body> <pre>\n");
    if( !lock_file)
@@ -163,15 +155,16 @@ int main( void)
    fprintf( lock_file, "We're in\n");
    for( size_t i = 0; environ[i]; i++)
       fprintf( lock_file, "%s\n", environ[i]);
-   if( !*idata)      /* must be POST rather than GET */
-      if( !fgets( idata, max_buff_size, stdin))
-         {
-         printf( "<p> Well,  that's weird.  There's no input. </p>");
-         return( -1);
-         }
+   cgi_status = initialize_cgi_reading( );
    strcpy( date_text, "now");
-   while( !get_urlencoded_form_data( &tptr, field, sizeof( field),
-                                            buff, max_buff_size))
+   fprintf( lock_file, "CGI status %d\n", cgi_status);
+   if( cgi_status <= 0)
+      {
+      printf( "<p> <b> CGI data reading failed : error %d </b>", cgi_status);
+      printf( "This isn't supposed to happen.</p>\n");
+      return( 0);
+      }
+   while( !get_cgi_data( field, buff, NULL, max_buff_size))
       {
       if( !strcmp( field, "date") && strlen( buff) < 70)
          {
@@ -180,7 +173,6 @@ int main( void)
          }
       }
    free( buff);
-   free( idata);
    argv[0] = "tle_date";
    argv[1] = date_text;
    argv[2] = "/home/projectp/public_html/tles/";
