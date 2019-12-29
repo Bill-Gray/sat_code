@@ -957,7 +957,8 @@ int main( const int argc, const char **argv)
    ifile = fopen( argv[1], "rb");
    if( !ifile)
       {
-      printf( "Couldn't open input file %s\n", argv[1]);
+      fprintf( stderr, "Couldn't open input file %s\n", argv[1]);
+      perror( NULL);
       return( -1);
       }
    obs = get_observations_from_file( ifile, &n_obs, t_low, t_high);
