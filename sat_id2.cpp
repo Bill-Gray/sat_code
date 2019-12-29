@@ -15,6 +15,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA. */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,8 +39,8 @@ int main( const int unused_argc, const char **unused_argv)
 {
    const char *argv[20];
    const size_t max_buff_size = 40000;       /* room for 500 obs */
-   char *buff = (char *)malloc( max_buff_size);
-   char boundary[100], field[30];
+   char *buff = (char *)malloc( max_buff_size), *tptr;
+   char field[30];
    const char *temp_obs_filename = "sat_obs.txt";
    double search_radius = 4.;     /* look 2 degrees for matches */
    double motion_cutoff = 0.015;  /* up to .015'/s motion discrepancy OK */
@@ -47,6 +48,7 @@ int main( const int unused_argc, const char **unused_argv)
    const int argc = 6;               /* certainly not an artsat */
    FILE *lock_file = fopen( "lock.txt", "w");
    size_t bytes_written = 0;
+   int cgi_status;
    extern int verbose;
 #ifndef _WIN32
    extern char **environ;
@@ -68,14 +70,17 @@ int main( const int unused_argc, const char **unused_argv)
    for( size_t i = 0; environ[i]; i++)
       fprintf( lock_file, "%s\n", environ[i]);
 #endif
-   if( !fgets( boundary, sizeof( boundary), stdin))
+   cgi_status = initialize_cgi_reading( );
+   fprintf( lock_file, "CGI status %d\n", cgi_status);
+   if( cgi_status <= 0)
       {
-      printf( "<p><b> No info read from stdin</b></p>");
-      printf( "<p>This isn't supposed to happen.</p>");
+      printf( "<p> <b> CGI data reading failed : error %d </b>", cgi_status);
+      printf( "This isn't supposed to happen.</p>\n");
       return( 0);
       }
-   while( get_multipart_form_data( boundary, field, buff, NULL, max_buff_size) >= 0)
+   while( !get_cgi_data( field, buff, NULL, max_buff_size))
       {
+//    fprintf( lock_file, "Field '%s'\n", field);
       if( !strcmp( field, "TextArea") || !strcmp( field, "upfile"))
          {
          if( strlen( buff) > 70)
@@ -83,6 +88,13 @@ int main( const int unused_argc, const char **unused_argv)
             FILE *ofile = fopen( temp_obs_filename,
                                (bytes_written ? "ab" : "wb"));
 
+            fprintf( lock_file, "File opened : %p\n", (void *)ofile);
+            if( !ofile)
+               {
+               printf( "<p> Couldn't open %s : %s </p>\n", temp_obs_filename, strerror( errno));
+               fprintf( lock_file, "Couldn't open %s: %s\n", temp_obs_filename, strerror( errno));
+               return( -1);
+               }
             bytes_written += fwrite( buff, 1, strlen( buff), ofile);
             fclose( ofile);
             }
@@ -100,6 +112,8 @@ int main( const int unused_argc, const char **unused_argv)
       if( !strcmp( field, "low_speed"))
          low_speed_cutoff = atof( buff);
       }
+   fprintf( lock_file, "Fields read\n");
+// printf( "<p>Fields read</p>\n");
    if( verbose)
       printf( "Searching to %f degrees;  %u bytes read from input\n",
                      search_radius, (unsigned)bytes_written);
@@ -110,8 +124,9 @@ int main( const int unused_argc, const char **unused_argv)
    argv[3] = field;
    sprintf( buff, "-y%f", motion_cutoff);
    argv[4] = buff;
-   sprintf( boundary, "-z%f", low_speed_cutoff);
-   argv[5] = boundary;
+   tptr = buff + strlen( buff) + 1;
+   sprintf( tptr, "-z%f", low_speed_cutoff);
+   argv[5] = tptr;
    argv[6] = NULL;
    sat_id_main( argc, argv);
    free( buff);
