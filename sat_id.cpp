@@ -582,7 +582,10 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    const clock_t time_started = clock( );
 
    if( !tle_file)
+      {
+      printf( "WARNING : '%s' not opened\n", tle_file_name);
       return( -1);
+      }
    if( verbose)
       printf( "Looking through TLE file '%s', %u objs, radius %f, max %f revs/day\n",
                  tle_file_name, (unsigned)n_objects, search_radius, max_revs_per_day);
