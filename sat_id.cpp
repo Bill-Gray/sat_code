@@ -583,7 +583,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
    if( !tle_file)
       {
-      printf( "WARNING : '%s' not opened\n", tle_file_name);
+#ifdef ON_LINE_VERSION
+      printf( "<h1> WARNING : '%s' not opened<br>\n", tle_file_name);
+      printf( "Please e-mail pluto\x40projectpluto\x2e\x63om about this. </h1>\n");
+#else
+      fprintf( stderr, "WARNING : '%s' not opened\n", tle_file_name);
+      fprintf( stderr, "Please e-mail pluto\x40projectpluto\x2e\x63om about this.\n");
+#endif
       return( -1);
       }
    if( verbose)
