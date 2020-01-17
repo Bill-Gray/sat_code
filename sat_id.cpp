@@ -753,7 +753,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
          sscanf( line2 + 14, "%lf %lf %lf\n", &mjd_start, &mjd_end, &tle_range);
          if( check_updates && mjd_end < curr_mjd + 7.)
-            printf( "WARNING:  Update TLEs in '%s'\n", tle_file_name);
+            {
+            char time_buff[40];
+
+            full_ctime( time_buff, mjd_end + 2400000.5, FULL_CTIME_YMD);
+            printf( "WARNING: TLEs in '%s' run out on %s\n",
+                           tle_file_name, time_buff);
+            }
          if( !got_obs_in_range( objects, n_objects, mjd_start + 2400000.5,
                                             mjd_end + 2400000.5))
             {
