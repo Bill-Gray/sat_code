@@ -61,7 +61,7 @@ INCL=$(INSTALL_DIR)/include
 
 all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
 	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) \
-	dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE)
+	tle2mpc$(EXE) dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE)
 
 CFLAGS=-Wextra -Wall -O3 -pedantic
 
@@ -84,6 +84,7 @@ clean:
 	$(RM) sat_id2$(EXE)
 	$(RM) test2$(EXE)
 	$(RM) tle_date$(EXE)
+	$(RM) tle2mpc$(EXE)
 	$(RM) tle_date.cgi
 	$(RM) test_out$(EXE)
 	$(RM) test_sat$(EXE)
@@ -150,6 +151,9 @@ tle_date.o: tle_date.c
 
 tle_date.cgi:	 	tle_date.c
 	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c -L $(LIB_DIR) -llunar
+
+tle2mpc$(EXE):	 	tle2mpc.cpp libsatell.a
+	$(CC) $(CFLAGS) -o tle2mpc$(EXE) -I $(INCL) tle2mpc.cpp libsatell.a -lm -L $(LIB_DIR) -llunar
 
 test_out$(EXE):	 test_out.o tle_out.o get_el.o sgp4.o common.o
 	$(CC) $(CFLAGS) -o test_out$(EXE) test_out.o tle_out.o get_el.o sgp4.o common.o -lm
