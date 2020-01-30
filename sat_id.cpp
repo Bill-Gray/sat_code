@@ -568,7 +568,7 @@ that we know we have a good handle on.  */
 
 static double max_expected_error = 180.;
 static int n_tles_expected_in_file = 0;
-static bool show_computed_motion = false;
+static bool show_offsets = false;
 
 static int add_tle_to_obs( object_t *objects, const size_t n_objects,
              const char *tle_file_name, const double search_radius,
@@ -720,16 +720,18 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                                   or in degrees/minute */
                      printf( "%s\n", optr1->text);
                      printf( "%s", obuff);
-                     if( dt && show_computed_motion)
+                     if( dt)
                         {
-                        printf( "              Starting offsets : %.2f %.2f\n",
+                        if( show_offsets)
+                           printf( "              Starting offsets : %.2f %.2f\n",
                                  xvel * 3600. * (180. / PI),
                                  yvel * 3600. * (180. / PI));
                         compute_offsets( &xvel, &yvel, ra2 - ra, dec2, dec);
                         compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
                         printf( "             motion %5.2f\"/sec at PA %5.1f (computed)\n",
                             motion_rate, motion_pa);
-                        printf( "              Ending offsets :   %.2f %.2f (dt = %f min)\n",
+                        if( show_offsets)
+                           printf( "              Ending offsets :   %.2f %.2f (dt = %f min)\n",
                                  xvel * 3600. * (180. / PI),
                                  yvel * 3600. * (180. / PI), dt * minutes_per_day);
                         }
@@ -914,7 +916,7 @@ int main( const int argc, const char **argv)
                output_astrometry_filename = param;
                break;
             case 's':
-               show_computed_motion = true;
+               show_offsets = true;
                break;
             case 't':
                tname = param;
