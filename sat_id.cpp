@@ -984,13 +984,13 @@ int main( const int argc, const char **argv)
       return( -2);
    shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
 
-   for( i = n_objects = 0; (size_t)i < n_obs; i++)
+   for( n_objects = i = 0; (size_t)i < n_obs; i++)
       if( !i || id_compare( obs + i - 1, obs + i))
          n_objects++;
    objects = (object_t *)calloc( n_objects, sizeof( object_t));
    assert( objects);
    printf( "%d objects\n", (int)n_objects);
-   for( i = prev_i = n_objects = 0; (size_t)i < n_obs; i++)
+   for( n_objects = i = prev_i = 0; (size_t)i < n_obs; i++)
       if( !i || id_compare( obs + i - 1, obs + i))
          {
          objects[n_objects].obs = obs + i;
