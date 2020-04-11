@@ -693,7 +693,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      sprintf( full_intl_desig, "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
-                     sprintf( obuff, "      %05dU = %-9s",
+                     sprintf( obuff, "      %05dU = %-11s",
                            tle.norad_number, full_intl_desig);
                      sprintf( obuff + strlen( obuff),
                                "e=%.2f; P=%.1f min; i=%.1f",
@@ -833,7 +833,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
 static char *unpack_intl( const char *packed, char *unpacked)
 {
-   snprintf( unpacked, 10, "%s%.2s-%s",
+   snprintf( unpacked, 12, "%s%.2s-%s",
             (atoi( packed) > 57000 ? "19" : "20"), packed, packed + 2);
    return( unpacked);
 }
