@@ -3,9 +3,11 @@ all:  test2.exe test_sat.exe obs_test.exe obs_tes2.exe sat_id.exe out_comp.exe
 
 !ifdef BITS_32
 COMMON_FLAGS=-nologo -W3 -EHsc -c -FD
+LUNAR=lunar
 RM=rm
 !else
 COMMON_FLAGS=-nologo -W3 -EHsc -c -FD -D_CRT_SECURE_NO_WARNINGS
+LUNAR=lunar64
 RM=del
 !endif
 
@@ -32,7 +34,7 @@ obs_tes2.exe: obs_tes2.obj observe.obj sat_code.lib
    $(LINK)    obs_tes2.obj observe.obj sat_code.lib
 
 sat_id.exe: sat_id.obj observe.obj sat_code.lib
-   $(LINK)  sat_id.obj observe.obj sat_code.lib lunar.lib
+   $(LINK)  sat_id.obj observe.obj sat_code.lib $(LUNAR).lib
 
 out_comp.exe: out_comp.obj
    $(LINK)    out_comp.obj
@@ -45,3 +47,6 @@ clean:
    del *.exe
    del *.idb
    del sat_code.lib
+
+install:
+   copy norad.h ..\myincl
