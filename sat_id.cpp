@@ -695,7 +695,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                               tle.intl_desig, tle.intl_desig + 2);
                      sprintf( obuff, "      %05dU = %-11s",
                            tle.norad_number, full_intl_desig);
-                     sprintf( obuff + strlen( obuff),
+                     if( tle.ephemeris_type != 'H')
+                        sprintf( obuff + strlen( obuff),
                                "e=%.2f; P=%.1f min; i=%.1f",
                                tle.eo, 2. * PI / tle.xno,
                                tle.xincl * 180. / PI);
