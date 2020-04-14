@@ -235,15 +235,20 @@ static int high_ephemeris( double tsince, const tle_t *tle, const double *params
    while( tsince)                   /* more convenient hereforth       */
       {
       double dt = tsince, dt_in_seconds;
-      const double max_step = 1.;
+      double max_step = 1.;
       double kvects[4][6];
 
+      calc_state_vector_deriv( jd, state_vect, kvects[0]);
+      for( j = 3; j < 6; j++)
+         if( max_step > 1e-3 / fabs( kvects[0][j]))
+            max_step = 1e-3 / fabs( kvects[0][j]);
+      if( max_step < 1e-5)
+         max_step = 1e-5;
       if( tsince > max_step)
          dt = max_step;
       else if( tsince < -max_step)
          dt = -max_step;
       dt_in_seconds = dt * seconds_per_day;
-      calc_state_vector_deriv( jd, state_vect, kvects[0]);
       for( j = 1; j < 4; j++)
          {
          const double step = (j == 3 ? dt_in_seconds : dt_in_seconds * .5);
