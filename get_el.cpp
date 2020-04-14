@@ -16,6 +16,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA. */
 
 #include <string.h>
+#include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -120,33 +121,53 @@ int DLL_FUNC tle_checksum( const char *buff)
    return( rval % 10);
 }
 
+static inline int mutant_dehex( const char ichar)
+{
+   int rval;
+
+   if( ichar <= '9' && ichar >= '0')
+      rval = ichar - '0';
+   else if( ichar >= 'A' && ichar <= 'Z')
+      rval = ichar + 10 - 'A';
+   else
+      rval = -1;
+   return( rval);
+}
+
 /* The "standard" SDP4 model fails badly for very high-flying satellites.
 As a non-standard extension,  I'm simply storing state vectors for them,
 using the following somewhat odd scheme :
 
-1 40391U 15007B   15091.99922241 sxxxxxxxx syyyyyyyy szzzzzzzzh  9997
+1 40391U 15007B   15091.99922241 sxxxxxxxx syyyyyyyy szzzzzzzzH  9997
 2 49391 [valid range, accuracy]  saaaaaaaa sbbbbbbbb scccccccc    0 8
 
    Epoch,  int'l & NORAD IDs are stored in the standard manner.  The
-'ephemeris type' is h (rather than the otherwise universal 0).  The
+'ephemeris type' is H (rather than the otherwise universal 0).  The
 xyz position and vx, vy, vz velocity are stored as 8-digit signed
-hexadecimal values,  hence a range of +/- 2^32.
+base-36 integers,  hence a range of +/- 36^8 = about +/- 2.82x10^12.
 
-  x, y, z are in meters,  and hence cover a range +/- 4.29 million km.
-vx, vy, vz are in 10^-4 m/s,  range +/- 429 km/s.  I do have ideas in
-mind if we have to go beyond that... but let's hope that doesn't happen. */
+  x, y, z are in meters,  and hence cover a range +/- 18.9 AU.
+vx, vy, vz are in 10^-4 m/s,  range +/- 94% c.  */
 
 static double get_high_value( const char *iptr)
 {
-   int bytes_scanned;
-   unsigned value = 0;
-   double rval = 0.;
+   int64_t rval = 0;
 
+   assert( *iptr == '+' || *iptr == '-');
    if( *iptr == '+' || *iptr == '-')
-      if( sscanf( iptr + 1, "%x%n", &value, &bytes_scanned) == 1
-                     && bytes_scanned == 8)
-         rval = (*iptr == '-' ? -(double)value : (double)value);
-   return( rval);
+      {
+      int i, digit;
+
+      for( i = 1; i < 9; i++)
+         {
+         digit = mutant_dehex( iptr[i]);
+         assert( digit >= 0);
+         rval = rval * (int64_t)36 + (int64_t)digit;
+         }
+      if( *iptr == '-')
+         rval = -rval;
+      }
+   return( (double)rval);
 }
 
 static inline double get_eight_places( const char *ptr)

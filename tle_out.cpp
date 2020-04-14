@@ -25,6 +25,7 @@ https://en.wikipedia.org/wiki/Two-line_elements       */
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <math.h>
 #include "norad.h"
 
@@ -72,12 +73,22 @@ static double zero_to_two_pi( double angle_in_radians)
 }
 
 /* See comments for get_high_value() in 'get_el.cpp'.  Essentially,  we are
-   writing out a state vector in convoluted form.  */
+   writing out a state vector in a convoluted base-36 form.  */
 
 static void set_high_value( char *obuff, const double value)
 {
+   int64_t oval = (int64_t)fabs( value);
+   int i;
+
    *obuff++ = (value >= 0. ? '+' : '-');
-   sprintf( obuff, "%08X", (unsigned)fabs( value));
+   for( i = 7; i >= 0; i--, oval /= (int64_t)36)
+      {
+      obuff[i] = (char)( oval % (int64_t)36);
+      if( obuff[i] < 10)
+         obuff[i] += '0';
+      else
+         obuff[i] += 'A' - 10;
+      }
    obuff[8] = ' ';
 }
 
