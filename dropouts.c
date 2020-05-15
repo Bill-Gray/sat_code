@@ -43,7 +43,7 @@ int main( const int argc, const char **argv)
           "83020D   ASTRON booster",
           "99040B ! Chandra X-Ray Observatory",
           "99066A ! XMM/Newton",
-          "99066B ! XMM/Newton booster",
+          "99066B   XMM/Newton booster",
           NULL };
    FILE *ifile = fopen( argc == 1 ? "all_tle.txt" : argv[1], "rb");
    char buff[100];
