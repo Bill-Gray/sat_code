@@ -1,3 +1,5 @@
+/* Copyright (C) 2018, Project Pluto.  See LICENSE.  */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

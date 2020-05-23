@@ -1,19 +1,14 @@
-/* Copyright (C) 2018, Project Pluto
+/* Copyright (C) 2018, Project Pluto.  See LICENSE.  */
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA. */
+/* Hooks to allow the satellite code to be accessed from a DLL,
+with the DLL not loaded at startup;  instead,  LoadLibrary is
+used at the time you decide you actually want satellite functions.
+Not something likely to be useful to many people.  I used it some
+years back for my desktop planetarium software;  I could check for
+the existence of the DLL,  use it if available,  or fall back to
+some built-in code if it wasn't.  (The DLL was,  by standards of
+the day,  a little bit large.  Not everybody had enough interest
+in artsats to download it.)   */
 
 #include <stdio.h>
 #include <stdlib.h>

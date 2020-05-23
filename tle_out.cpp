@@ -1,22 +1,6 @@
+/* Copyright (C) 2018, Project Pluto.  See LICENSE.  */
+
 /* tle_out.cpp: code to create ASCII TLEs (Two-Line Elements)
-
-Copyright (C) 2014, Project Pluto
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.    */
-
 
 /* Code to convert the in-memory artificial satellite elements into
 the "standard" TLE (Two-Line Element) form described at
