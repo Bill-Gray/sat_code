@@ -1,9 +1,7 @@
-/* Copyright (C) 2018, Project Pluto.  See LICENSE.  */
+/* Copyright (C) 2018, Project Pluto.  See LICENSE.
 
-/* tle_out.cpp: code to create ASCII TLEs (Two-Line Elements)
-
-/* Code to convert the in-memory artificial satellite elements into
-the "standard" TLE (Two-Line Element) form described at
+   tle_out.cpp: code to convert the in-memory artificial satellite
+elements into the "standard" TLE (Two-Line Element) form described at
 
 https://en.wikipedia.org/wiki/Two-line_elements       */
 
