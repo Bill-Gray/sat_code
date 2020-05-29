@@ -24,6 +24,7 @@ corrections (least-squares fitting).         */
 #include "norad.h"
 #include "watdefs.h"
 #include "afuncs.h"
+#include "date.h"
 
 #define PI \
    3.1415926535897932384626433832795028841971693993751058209749445923
@@ -31,33 +32,43 @@ corrections (least-squares fitting).         */
 int main( const int argc, const char **argv)
 {
    FILE *ifile;
-   const char *filename;
+   const char *filename = "all_tle.txt";
    char line0[100], line1[100], line2[100];
    int i;
    const char *norad = NULL, *intl = NULL;
+   double jd = 0.;
+   int is_j2000 = 1, is_equatorial = 1;
 
-   for( i = 2; i < argc; i++)
+   for( i = 1; i < argc; i++)
       if( argv[i][0] == '-')
+         {
+         const char *arg = (i < argc - 1 && !argv[i][2]
+                                          ? argv[i + 1] : argv[i] + 2);
+
          switch( argv[i][1])
             {
             case 'n':
-               norad = argv[i] + 2;
-               if( !*norad && i < argc - 1)
-                  norad = argv[++i];
+               norad = arg;
                printf( "Looking for NORAD %s\n", norad);
                break;
             case 'i':
-               intl = argv[i] + 2;
-               if( !*intl && i < argc - 1)
-                  intl = argv[++i];
+               intl = arg;
                printf( "Looking for international ID %s\n", intl);
+               break;
+            case 't':
+               jd = get_time_from_string( 0., arg, FULL_CTIME_YMD, NULL);
+               break;
+            case 'd':
+               is_j2000 = 0;
                break;
             default:
                printf( "'%s': unrecognized option\n", argv[i]);
                return( -1);
                break;
             }
-   filename = (argc == 1 ? "all_tle.txt" : argv[1]);
+         }
+   if( argc > 1 && argv[1][0] != '-')
+      filename = argv[1];
    ifile = fopen( filename, "rb");
    if( !ifile)
       {
@@ -79,33 +90,40 @@ int main( const int argc, const char **argv)
             {
             const int is_deep = select_ephemeris( &tle);
             double state[6], state_j2000[6], precess_matrix[9];
-            double params[N_SAT_PARAMS];
+            double params[N_SAT_PARAMS], t_since;
             const double epoch_tdt =
                         tle.epoch + td_minus_utc( tle.epoch) / seconds_per_day;
             const double J2000 = 2451545.;
+            double *state_to_show;
 
+            if( !jd)
+               jd = epoch_tdt;
+            t_since = (jd - epoch_tdt) * minutes_per_day;
             if( is_deep)
                {
                SDP4_init( params, &tle);
-               SDP4( 0., &tle, params, state, state + 3);
+               SDP4( t_since, &tle, params, state, state + 3);
                }
             else
                {
                SGP4_init( params, &tle);
-               SGP4( 0., &tle, params, state, state + 3);
+               SGP4( t_since, &tle, params, state, state + 3);
                }
             if( strlen( line0) < 60)
                printf( "%s", line0);
-            setup_precession( precess_matrix, 2000. + (epoch_tdt - J2000) / 365.25, 2000.);
+            setup_precession( precess_matrix, 2000. + (jd - J2000) / 365.25, 2000.);
             precess_vector( precess_matrix, state, state_j2000);
             precess_vector( precess_matrix, state + 3, state_j2000 + 3);
-            printf( " %.6f %.6s\n", epoch_tdt, line1 + 9);
-            printf( " %.5f %.5f %.5f 0408   # Ctr 3 km sec eq\n",
-                           state_j2000[0], state_j2000[1], state_j2000[2]);
+            state_to_show = (is_j2000 ? state_j2000 : state);
+            printf( " %.6f %.6s\n", jd, line1 + 9);
+            printf( " %.5f %.5f %.5f 0408   # Ctr 3 km sec %s %s\n",
+                           state_to_show[0], state_to_show[1], state_to_show[2],
+                           is_equatorial ? "eq" : "ecl",
+                           is_j2000 ? "" : "of_date");
             printf( " %.5f %.5f %.5f 0 0 0\n",
-                           state_j2000[3] / seconds_per_minute,
-                           state_j2000[4] / seconds_per_minute,
-                           state_j2000[5] / seconds_per_minute);
+                           state_to_show[3] / seconds_per_minute,
+                           state_to_show[4] / seconds_per_minute,
+                           state_to_show[5] / seconds_per_minute);
             }
          }
       strcpy( line0, line1);
