@@ -127,6 +127,9 @@ fix_tles$(EXE):	 fix_tles.o libsatell.a
 get_vect$(EXE):	 	get_vect.cpp	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o get_vect$(EXE) -I $(INCL) get_vect.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
+line2$(EXE):	 	line2.cpp libsatell.a
+	$(CC) $(CFLAGS) -o line2$(EXE) -I $(INCL) line2.cpp libsatell.a -lm -L $(LIB_DIR) -llunar
+
 out_comp$(EXE):	 out_comp.o
 	$(CC) $(CFLAGS) -o out_comp$(EXE) out_comp.o -lm
 
