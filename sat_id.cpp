@@ -353,24 +353,91 @@ void shellsort_r( void *base, const size_t n_elements, const size_t elem_size,
 #endif
 }
 
-static void compute_offsets( double *dx, double *dy,
-                double delta_ra, const double dec1, const double dec2)
+/* Given a unit vector,  this creates a perpendicular xi_vect
+in the xy plane and an eta_vect perpendicular to them both. */
+
+static void create_orthogonal_vects( const double *v, double *xi_vect, double *eta_vect)
 {
-   while( delta_ra > PI)
-      delta_ra -= PI + PI;
-   while( delta_ra < -PI)
-      delta_ra += PI + PI;
-   *dy = dec2 - dec1;
-   *dx = delta_ra * cos( (dec2 + dec1) / 2.);
+   const double tval = sqrt( v[0] * v[0] + v[1] * v[1]);
+
+   xi_vect[2] = 0.;
+   if( !tval)     /* 'mid' is directly at a celestial pole */
+      {
+      xi_vect[0] = 1.;
+      xi_vect[1] = 0.;
+      }
+   else
+      {
+      xi_vect[0] =  v[1] / tval;
+      xi_vect[1] = -v[0] / tval;
+      }
+   vector_cross_product( eta_vect, v, xi_vect);
+}
+
+/* relative_motion() is intended for situations where you've
+   computed that an object moved from p1 to p2,  and want to
+   compare that motion vector to an observed motion from p3 to
+   p4.  Initial use cases are in Sat_ID (we have a computed motion
+   from TLEs and two observed RA/decs) and astcheck (similar,  but
+   the computed positions are from orbital elements).  In each case,
+   you're trying to determine if the observed and computed motions
+   match to within some threshhold.
+
+   I used to do this by computing (delta_RA * cos_dec, delta_dec)
+   for both observed and computed motions.  That works well as long as
+   the two points are very close together.  As they're separated,  you
+   get distortions.  This should be more accurate.
+
+   Given four points
+         (ra_dec[0], ra_dec[1]) = starting point object 1
+         (ra_dec[2], ra_dec[3]) = ending point object 1
+         (ra_dec[4], ra_dec[5]) = starting point object 2
+         (ra_dec[6], ra_dec[7]) = ending point object 2
+   we compute their (xi, eta) sky plane coordinates,  using a plane
+   tangent to the midpoint of the starting locations.  That way,  any
+   distortion will affect both ends equally.  Then we compute how far
+   each object moved in the sky plane coordinates.  Then we compute
+   the differences in speed.              */
+
+double relative_motion( const double *ra_dec)
+{
+   double mid[3], xi_vect[3], eta_vect[3];
+   double xi[4], eta[4], v[4][3];
+   double delta_xi, delta_eta;
+   int i;
+
+   for( i = 0; i < 4; i++)
+      polar3_to_cartesian( v[i], ra_dec[i + i], ra_dec[i + i + 1]);
+
+   for( i = 0; i < 3; i++)
+      mid[i] = v[0][i] + v[1][i] + v[2][i] + v[3][i];
+   normalize_vect3( mid);
+   create_orthogonal_vects( mid, xi_vect, eta_vect);
+   for( i = 0; i < 4; i++)
+      {
+      const double dist = dot_product( mid, v[i]);
+
+      xi[i] = dot_product( xi_vect, v[i]) / dist;
+      eta[i] = dot_product( eta_vect, v[i]) / dist;
+      }
+   delta_xi =  (xi[0]  - xi[1])  - (xi[2]  - xi[3]);
+   delta_eta = (eta[0] - eta[1]) - (eta[2] - eta[3]);
+   return( sqrt( delta_xi * delta_xi + delta_eta * delta_eta));
 }
 
 static double angular_sep( const double delta_ra, const double dec1,
-            const double dec2)
+            const double dec2, double *posn_ang)
 {
-   double dx, dy;
+   double p1[2], p2[2], dist;
 
-   compute_offsets( &dx, &dy, delta_ra, dec1, dec2);
-   return( sqrt( dx * dx + dy * dy));
+   p1[0] = 0.;
+   p1[1] = dec1;
+   p2[0] = delta_ra;
+   p2[1] = dec2;
+   calc_dist_and_posn_ang( p1, p2, &dist, posn_ang);
+   if( posn_ang)
+      *posn_ang *= 180. / PI;
+   return( dist);
 }
 
 /* Out of all observations for a given object,  this function will pick
@@ -403,7 +470,7 @@ static double find_good_pair( OBSERVATION *obs, const size_t n_obs,
             {
             const double optimal_dist = PI / 180.;   /* one degree */
             const double dist = angular_sep( obs[b].ra - obs[a].ra,
-                              obs[b].dec, obs[a].dec);
+                              obs[b].dec, obs[a].dec, NULL);
             const double score = fabs( dist - optimal_dist);
 
             assert( dt >= .0);
@@ -476,7 +543,6 @@ don't,  we can skip an individual TLE or an entire file.  */
 static bool got_obs_in_range( const object_t *objs, size_t n_objects,
                const double jd_start, const double jd_end)
 {
-   assert( n_objects > 0);
    while( n_objects--)
       {
       OBSERVATION *obs = objs->obs;
@@ -521,20 +587,12 @@ static void remove_redundant_desig( char *name, const char *desig)
          }
 }
 
-static void compute_motion( double *motion_pa, double *motion_rate,
-               const double xvel, const double yvel)
-{
-   *motion_pa = atan2( yvel, xvel) * 180. / PI + 90.;
-   if( *motion_pa < 0.)
-      *motion_pa += 180.;
-   *motion_rate = sqrt( xvel * xvel + yvel * yvel);
-   *motion_rate *= 180. / PI;        /* now in degrees/day */
-   *motion_rate /= 24.;              /* now in degrees/hr = arcsec/second */
-}
+          /* The computed and observed motions should match,  but
+          (obviously) only to some tolerance.  A tolerance of 20
+          arcseconds seems to work. (May seem large,  but these
+          objects often 'streak' and have large residuals.)         */
 
-          /* The computed and observed motions should match,  but (obviously)
-          only to some tolerance.  A tolerance of 0.001'/s seems to work. */
-double motion_mismatch_limit = .001;
+double motion_mismatch_limit = 20.;
 
 /* Given a set of MPC observations and a TLE file,  this function looks at
 each TLE in the file and checks to see if that satellite came close to any
@@ -553,7 +611,6 @@ that we know we have a good handle on.  */
 
 static double max_expected_error = 180.;
 static int n_tles_expected_in_file = 0;
-static bool show_offsets = false;
 
 static int add_tle_to_obs( object_t *objects, const size_t n_objects,
              const char *tle_file_name, const double search_radius,
@@ -615,15 +672,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
             if( is_in_range( optr1->jd, tle_start, tle_range))
                {
-               double dx, dy;
                double radius;
                double ra, dec, dist_to_satellite;
                int sxpx_rval, n_matches = 0;
 
                sxpx_rval = compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
                               optr1, &tle, sat_params);
-               compute_offsets( &dx, &dy, ra - optr1->ra, dec, optr1->dec);
-               radius = sqrt( dx * dx + dy * dy) * 180. / PI;
+               radius = angular_sep( ra - optr1->ra, dec, optr1->dec, NULL) * 180. / PI;
                while( n_matches < MAX_MATCHES - 1
                        && obj_ptr->matches[n_matches].norad_number != tle.norad_number
                        && obj_ptr->matches[n_matches].norad_number)
@@ -632,37 +687,33 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                        && radius < max_expected_error
                        && !obj_ptr->matches[n_matches].norad_number)
                   {
-                  double dx1, dy1;
                   const double dt = optr2->jd - optr1->jd;
                   double motion_diff, ra2, dec2;
+                  double temp_array[8];
 
                   compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
                               optr2, &tle, sat_params);
-                  compute_offsets( &dx1, &dy1, ra2 - optr2->ra, dec2, optr2->dec);
-                  dx1 -= dx;
-                  dy1 -= dy;
-                  motion_diff = sqrt( dx1 * dx1 + dy1 * dy1);
-                  if( dt)           /* convert separations/dist into speeds */
-                     {
-                     dx /= dt;
-                     dy /= dt;
-                     motion_diff /= dt;
-                     }
-                  assert( dt >= 0.);
-                  motion_diff *= 180. / PI;  /* now in degrees/day */
-                  motion_diff /= minutes_per_day;   /* now in arcmin/second */
+                  temp_array[0] = ra;     /* starting point (computed) */
+                  temp_array[1] = dec;
+                  temp_array[2] = ra2;    /* ending point (computed) */
+                  temp_array[3] = dec2;
+                  temp_array[4] = optr1->ra;  /* starting point (observed) */
+                  temp_array[5] = optr1->dec;
+                  temp_array[6] = optr2->ra;  /* ending point (observed) */
+                  temp_array[7] = optr2->dec;
+                  motion_diff = relative_motion( temp_array);
+                  motion_diff *= 3600. * 180. / PI;  /* cvt to arcseconds */
                   if( motion_diff < motion_mismatch_limit)
                      {
                      char obuff[200];
                      char full_intl_desig[20];
-                     double xvel, yvel;
                      double motion_rate = 0., motion_pa = 0.;
                      size_t i;
 
-                     compute_offsets( &xvel, &yvel, optr2->ra - optr1->ra,
-                                                    optr2->dec, optr1->dec);
+                     motion_rate = angular_sep( optr1->ra - optr2->ra,
+                                                 optr1->dec, optr2->dec, &motion_pa);
                      if( dt)
-                        compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
+                        motion_rate /= dt;
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
@@ -699,7 +750,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 //                   sprintf( obuff + strlen( obuff), " motion %f", motion_diff);
                      strcat( obuff, "\n");
                      sprintf( obuff + strlen( obuff),
-                        "             motion %5.2f\"/sec at PA %5.1f; dist=%8.1f km; offset=%6.3f deg\n",
+                        "             motion %7.4f\"/sec at PA %5.1f; dist=%8.1f km; offset=%6.3f deg\n",
                             motion_rate, motion_pa,
                             dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
@@ -708,19 +759,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      printf( "%s", obuff);
                      if( dt)
                         {
-                        if( show_offsets)
-                           printf( "              Starting offsets : %.2f %.2f\n",
-                                 xvel * 3600. * (180. / PI),
-                                 yvel * 3600. * (180. / PI));
-                        compute_offsets( &xvel, &yvel, ra2 - ra, dec2, dec);
-                        compute_motion( &motion_pa, &motion_rate, xvel / dt, yvel / dt);
-                        printf( "             motion %5.2f\"/sec at PA %5.1f (computed)\n",
+                        motion_rate = angular_sep( ra - ra2, dec, dec2, &motion_pa);
+                        if( dt)
+                           motion_rate /= dt;
+                        printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n",
                             motion_rate, motion_pa);
-                        if( show_offsets)
-                           printf( "              Ending offsets :   %.2f %.2f (dt = %f min)\n",
-                                 xvel * 3600. * (180. / PI),
-                                 yvel * 3600. * (180. / PI), dt * minutes_per_day);
                         }
+//                   printf( "             mismatch %5.2f\"\n", motion_diff);
                      printf( "\n");
                      }
                   }
@@ -900,9 +945,6 @@ int main( const int argc, const char **argv)
                break;
             case 'o':
                output_astrometry_filename = param;
-               break;
-            case 's':
-               show_offsets = true;
                break;
             case 't':
                tname = param;
