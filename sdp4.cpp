@@ -7,12 +7,30 @@
 
 #include <stdio.h>
 
-/* For high satellites,  we do a numerical integration that uses a */
-/* rather drastic set of simplifications.  We include the earth,   */
-/* moon,  and sun,  but with low-precision approximations for the  */
-/* positions of those last two.  References are to Meeus' _Astronomical */
-/* Algorithms_,  2nd edition.  Results are in meters from the center */
-/* of the earth. */
+/* For high satellites,  we do a numerical integration that uses a
+rather drastic set of simplifications.  We include the earth,
+moon,  and sun,  but with low-precision approximations for the
+positions of those last two.  References are to Meeus' _Astronomical
+Algorithms_,  2nd edition.  Results are in meters from the center
+of the earth.
+
+The numerical integration is done using the 'classic' RK4 algorithm,
+as described at (for example)
+
+https://en.wikipedia.org/wiki/Runge–Kutta_methods
+
+The solar and lunar positions are computed using Meeus' formulae,  which
+are a little computationally intensive.  RK4 has the slight advantage of
+requiring us to compute lunar/solar positions only for the steps
+themselves and their midpoints.
+
+You probably know that the 'elements' for traditional TLEs are fitted to
+the SGP4 and SDP4 models : if you tried to numerically integrate TLEs
+using a more sophisticated model,  you'd actually get _worse_ results.
+Similarly,  the state vectors for my modified TLEs are integrated using
+the following model,  which tries to balance accuracy and speed.  Just as
+you shouldn't try to "improve" SGP4/SDP4,  you shouldn't try to "improve"
+the following;  it'll only break backward compatibility.  */
 
 static void lunar_solar_position( const double jd, double *lunar_xyzr, double *solar_xyzr)
 {
@@ -70,6 +88,10 @@ static void lunar_solar_position( const double jd, double *lunar_xyzr, double *s
    *solar_xyzr++ = 0.;
    *solar_xyzr++ = solar_r;
 }
+
+/* For the RK4 integration,  we're frequently asking for the sun and
+moon positions at the exact same time we needed for the preceding step.
+Caching those positions saves recomputing them. */
 
 static void cached_lunar_solar_position( const double jd,
                     double *lunar_xyzr, double *solar_xyzr)
@@ -202,7 +224,13 @@ static int calc_state_vector_deriv( const double jd,
 }
 
 /* NOTE: t_since is in minutes,  posn is in km, vel is in km/minutes.
-   State vector is in meters and m/s.  Hence some conversions... */
+State vector is in meters and m/s.  Hence some conversions...
+
+'high_ephemeris()' does the actual RK4 numerical integration,  using a
+simplified model of the earth and moon and a quite basic integration
+step size adjustment so that it can take small steps when the object is
+close to the earth or moon and larger steps when far away.  As described
+above,  any temptation to "improve" the integration should be resisted. */
 
 static int high_ephemeris( double tsince, const tle_t *tle, const double *params,
                                          double *pos, double *vel)
