@@ -27,9 +27,9 @@ int main( const int unused_argc, const char **unused_argv)
    char *buff = (char *)malloc( max_buff_size), *tptr;
    char field[30];
    const char *temp_obs_filename = "sat_obs.txt";
-   double search_radius = 4.;     /* look 2 degrees for matches */
-   double motion_cutoff = 0.015;  /* up to .015'/s motion discrepancy OK */
-   double low_speed_cutoff = 0.003;  /* anything slower than this is almost */
+   double search_radius = 4.;     /* look 4 degrees for matches */
+   double motion_cutoff = 20.;  /* up to 20" discrepancy OK */
+   double low_speed_cutoff = 0.001;  /* anything slower than this is almost */
    const int argc = 6;               /* certainly not an artsat */
    FILE *lock_file = fopen( "lock.txt", "w");
    size_t bytes_written = 0;
@@ -92,10 +92,10 @@ int main( const int unused_argc, const char **unused_argv)
          if( verbosity)
             verbose = atoi( verbosity + 1) + 1;
          }
-      if( !strcmp( field, "motion"))
-         motion_cutoff = atof( buff);
-      if( !strcmp( field, "low_speed"))
-         low_speed_cutoff = atof( buff);
+//    if( !strcmp( field, "motion"))
+//       motion_cutoff = atof( buff);
+//    if( !strcmp( field, "low_speed"))
+//       low_speed_cutoff = atof( buff);
       }
    fprintf( lock_file, "Fields read\n");
 // printf( "<p>Fields read</p>\n");
@@ -115,6 +115,9 @@ int main( const int unused_argc, const char **unused_argv)
    argv[6] = NULL;
    sat_id_main( argc, argv);
    free( buff);
+   printf( "On-line Sat_ID compiled " __DATE__ " " __TIME__ " UTC-5h\n");
+   printf( "See <a href='https://www.github.com/Bill-Gray/sat_code'>"
+               "https://www.github.com/Bill-Gray/sat_code</a> for source code\n");
    printf( "</pre> </body> </html>");
    return( 0);
 }
