@@ -163,6 +163,7 @@ if you've installed Find_Orb,  it should be able to get it from the
 version of the file.      */
 
 int verbose = 0;
+static bool check_all_tles = false;
 
 static int get_station_code_data( char *station_code_data,
                   const char *mpc_code)
@@ -284,6 +285,10 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          rval[count] = obs;
          count++;
          }
+      else if( !strncmp( buff, "COM verbose ", 12))
+         verbose = atoi( buff + 12) + 1;
+      else if( !strcmp( buff, "COM check tles"))
+         check_all_tles = true;
       else if( !strcmp( buff, "COM ignore obs"))
          while( fgets_trimmed( buff, sizeof( buff), ifile))
             if( !strcmp( buff, "COM end ignore obs"))
@@ -670,6 +675,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             const OBSERVATION *optr1 = obj_ptr->obs + obj_ptr->idx1;
             const OBSERVATION *optr2 = obj_ptr->obs + obj_ptr->idx2;
 
+            assert( obj_ptr->idx1 <= obj_ptr->idx2);
+            assert( optr2->jd >= optr1->jd);
             if( is_in_range( optr1->jd, tle_start, tle_range))
                {
                double radius;
@@ -691,6 +698,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                   double motion_diff, ra2, dec2;
                   double temp_array[8];
 
+                  assert( dt >= 0.);
                   compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
                               optr2, &tle, sat_params);
                   temp_array[0] = ra;     /* starting point (computed) */
@@ -811,7 +819,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          assert( n_read == 2);
          tle_start = get_time_from_string( 0, start, FULL_CTIME_YMD, NULL);
          tle_range = get_time_from_string( 0, end, FULL_CTIME_YMD, NULL) - tle_start;
-         look_for_tles = got_obs_in_range( objects, n_objects, tle_start,
+         if( !check_all_tles)
+            look_for_tles = got_obs_in_range( objects, n_objects, tle_start,
                                  tle_start + tle_range);
          }
       else if( !memcmp( line2, "# MJD ", 6))
