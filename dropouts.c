@@ -41,6 +41,7 @@ int main( const int argc, const char **argv)
           "77093E   SL-6 R/B(2)",
           "83020A   ASTRON",
           "83020D   ASTRON booster",
+          "92044A   GEOTAIL",
           "99040B ! Chandra X-Ray Observatory",
           "99066A ! XMM/Newton",
           "99066B   XMM/Newton booster",
