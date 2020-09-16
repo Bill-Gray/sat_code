@@ -840,6 +840,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             {
             char iname[255];
             size_t i = strlen( tle_file_name);
+            const double saved_max_expected_error = max_expected_error;
 
             while( i && tle_file_name[i - 1] != '/' && tle_file_name[i - 1] != '\\')
                i--;
@@ -849,6 +850,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                printf( "Including '%s'\n", iname);
             rval = add_tle_to_obs( objects, n_objects, iname, search_radius,
                                     max_revs_per_day);
+            max_expected_error = saved_max_expected_error;
             }
          tle_start = 0.;
          tle_range = 1e+9;
