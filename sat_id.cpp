@@ -275,17 +275,20 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
          if( get_station_code_data( station_data, obs.text + 77))
             printf( "FAILED to find MPC code %s\n", obs.text + 77);
-         sscanf( station_data + 3, "%lf %lf %lf", &obs.lon,
-                                  &obs.rho_cos_phi, &obs.rho_sin_phi);
-         obs.lon *= PI / 180.;
-         if( count == n_allocated)
+         else
             {
-            n_allocated += 10 + n_allocated / 2;
-            rval = (OBSERVATION *)realloc( rval,
-                                 (n_allocated + 1) * sizeof( OBSERVATION));
+            sscanf( station_data + 3, "%lf %lf %lf", &obs.lon,
+                                     &obs.rho_cos_phi, &obs.rho_sin_phi);
+            obs.lon *= PI / 180.;
+            if( count == n_allocated)
+               {
+               n_allocated += 10 + n_allocated / 2;
+               rval = (OBSERVATION *)realloc( rval,
+                                    (n_allocated + 1) * sizeof( OBSERVATION));
+               }
+            rval[count] = obs;
+            count++;
             }
-         rval[count] = obs;
-         count++;
          }
       else if( !strncmp( buff, "COM verbose ", 12))
          verbose = atoi( buff + 12) + 1;
