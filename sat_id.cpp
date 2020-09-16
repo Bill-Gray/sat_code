@@ -238,16 +238,31 @@ static int get_station_code_data( char *station_code_data,
       }
    else
       {
+      static char *codes_already_reported = NULL;
+      static size_t n_reported = 0;
+
+      if( codes_already_reported && strstr( codes_already_reported, mpc_code))
+         return( -1);      /* we've already reported this as 'unknown' */
+      n_reported++;
+      codes_already_reported = (char *)realloc( codes_already_reported,
+                        n_reported * 4 + 1);
+      if( n_reported == 1)    /* realloc( ) doesn't initialize to zero */
+         *codes_already_reported = '\0';
+      strcat( codes_already_reported, mpc_code);
+      strcat( codes_already_reported, " ");
       printf( "Station code '%s' not found.\n", mpc_code);
+      if( n_reported == 1)    /* only really need the following text once */
+         {
 #ifdef ON_LINE_VERSION
-      printf( "If this is a new MPC code,  it could be that this service needs to be\n");
-      printf( "updated to know about it.  Please contact pluto at projectpluto.com so\n");
-      printf( "I can fix this.\n");
+         printf( "If this is a new MPC code,  it could be that this service needs to be\n");
+         printf( "updated to know about it.  Please contact pluto at projectpluto.com so\n");
+         printf( "I can fix this.\n");
 #else
-      printf( "If this is a new MPC code,  you may need to get this file:\n");
-      printf( "http://www.minorplanetcenter.org/iau/lists/ObsCodes.html\n");
-      printf( "and replace the existing ObsCodes.html.\n");
+         printf( "If this is a new MPC code,  you may need to get this file:\n");
+         printf( "http://www.minorplanetcenter.org/iau/lists/ObsCodes.html\n");
+         printf( "and replace the existing ObsCodes.html.\n");
 #endif
+         }
       }
    return( cached_ptr ? 0 : -1);
 }
@@ -273,9 +288,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          char station_data[100];
 
          j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
-         if( get_station_code_data( station_data, obs.text + 77))
-            printf( "FAILED to find MPC code %s\n", obs.text + 77);
-         else
+         if( !get_station_code_data( station_data, obs.text + 77))
             {
             sscanf( station_data + 3, "%lf %lf %lf", &obs.lon,
                                      &obs.rho_cos_phi, &obs.rho_sin_phi);
