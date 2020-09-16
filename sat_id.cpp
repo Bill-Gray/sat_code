@@ -142,7 +142,9 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
       return( -1);
    get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
                                      NULL, &obs->dec, NULL);
-   strcpy( obs->text, buff);
+   assert( strlen( buff) < sizeof( obs->text));
+   strncpy( obs->text, buff, sizeof( obs->text));
+   obs->text[80] = '\0';
    return( 0);
 }
 
