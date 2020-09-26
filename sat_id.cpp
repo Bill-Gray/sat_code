@@ -610,6 +610,10 @@ static void remove_redundant_desig( char *name, const char *desig)
          }
 }
 
+   /* By default,  we warn you if TLEs are going to run out next week. */
+
+static double lookahead_warning_days = 7.;
+
           /* The computed and observed motions should match,  but
           (obviously) only to some tolerance.  A tolerance of 20
           arcseconds seems to work. (May seem large,  but these
@@ -811,7 +815,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          double curr_mjd = mjd_1970 + (double)time( NULL) / 86400.;
 
          sscanf( line2 + 14, "%lf %lf %lf\n", &mjd_start, &mjd_end, &tle_range);
-         if( check_updates && mjd_end < curr_mjd + 7.)
+         if( check_updates && mjd_end < curr_mjd + lookahead_warning_days)
             {
             char time_buff[40];
 
@@ -959,6 +963,9 @@ int main( const int argc, const char **argv)
                break;
             case 'b':
                t_high = get_time_from_string( 0, param, FULL_CTIME_YMD, NULL);
+               break;
+            case 'l':
+               lookahead_warning_days = atof( param);
                break;
             case 'r':
                search_radius = atof( param);
