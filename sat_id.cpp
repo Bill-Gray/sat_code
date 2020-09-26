@@ -590,6 +590,37 @@ static bool got_obs_in_range( const object_t *objs, size_t n_objects,
    return( false);
 }
 
+/* Code to look through 'sat_xref.txt',  if available,  and assign NORAD
+and international designations to TLEs with only default designations.
+See 'sat_xref.txt' and 'eph2tle.cpp' in the Find_Orb repository. */
+
+static int look_up_extended_identifiers( const char *line0, tle_t *tle)
+{
+   static char buff[100];
+   int match_found = !strcmp( line0, buff + 21);
+   static bool got_sat_xref_txt = true;  /* until proven otherwise */
+
+   if( !match_found && got_sat_xref_txt)
+      {
+      FILE *ifile = local_then_config_fopen( "sat_xref.txt", "rb");
+
+      if( !ifile)    /* don't look for it again */
+         got_sat_xref_txt = false;
+      else
+         {
+         while( !match_found && fgets_trimmed( buff, sizeof( buff), ifile))
+            match_found = !strcmp( line0, buff + 21);
+         fclose( ifile);
+         }
+      }
+   if( match_found)
+      {
+      tle->norad_number = atoi( buff);
+      memcpy( tle->intl_desig, buff + 12, 8);
+      }
+   return( match_found);
+}
+
 /* The international (YYYY-NNNletter(s)) designation and the NORAD
 five-digit designation are always shown for a match.  If they're in
 the name as well,  we should remove them so that more of the actual
@@ -687,6 +718,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          {
          is_a_tle = true;
          n_tles_found++;
+         if( tle.norad_number == 99999)
+            look_up_extended_identifiers( line0, &tle);
          }
       if( is_a_tle && (tle.ephemeris_type == 'H'
                  || tle.xno < 2. * PI * max_revs_per_day / mins_per_day)
