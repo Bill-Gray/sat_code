@@ -155,6 +155,25 @@ void make_config_dir_name( char *oname, const char *iname)
    strcat( oname, "/.find_orb/");
    strcat( oname, iname);
 }
+
+static FILE *local_then_config_fopen( const char *filename, const char *permits)
+{
+   FILE *rval = fopen( filename, permits);
+
+   if( !rval)
+      {
+      char ext_filename[255];
+
+      make_config_dir_name( ext_filename, filename);
+      rval = fopen( ext_filename, "rb");
+      }
+   return( rval);
+}
+#else
+static FILE *local_then_config_fopen( const char *filename, const char *permits)
+{
+   return( fopen( filename, permits));
+}
 #endif
 
 /* This loads up the file 'ObsCodes.html' into memory on its first call.
@@ -188,16 +207,7 @@ static int get_station_code_data( char *station_code_data,
       int i;
 
       for( i = 0; !ifile && i < 2; i++)
-         ifile = fopen( filenames[i], "rb");
-#if !defined( _WIN32)
-      for( i = 0; !ifile && i < 2; i++)
-         {
-         char filename[255];
-
-         make_config_dir_name( filename, filenames[i]);
-         ifile = fopen( filename, "rb");
-         }
-#endif
+         ifile = local_then_config_fopen( filenames[i], "rb");
       if( !ifile)
          {
          printf( "Failed to find MPC station list 'ObsCodes.html'\n");
