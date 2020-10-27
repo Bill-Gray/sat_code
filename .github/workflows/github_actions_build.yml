@@ -13,7 +13,7 @@ jobs:
       run: |
         git clone https://github.com/Bill-Gray/lunar
         cd lunar
-        make
+        make liblunar.a
         make install
         cd ..
         make
@@ -26,7 +26,7 @@ jobs:
       run: |
         git clone https://github.com/Bill-Gray/lunar
         cd lunar
-        make CLANG=Y
+        make CLANG=Y liblunar.a
         make install
         cd ..
         make CLANG=Y
@@ -41,7 +41,7 @@ jobs:
         git clone https://github.com/Bill-Gray/lunar
         mkdir myincl
         cd lunar
-        nmake -f lunar.mak
+        nmake -f lunar.mak lunar64.lib
         nmake -f lunar.mak install
         cd ..
         set CL=/I"./myincl"
