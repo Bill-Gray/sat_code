@@ -1,5 +1,5 @@
 # Shameless copy of @AlastairUK's fine work for the jpl_eph repo.
-# Aside from the comment,  this should be a byte-for-byte copy.
+# Aside from the comment,  this is almost a byte-for-byte copy.
 name: Build
 
 on: [push, pull_request]
@@ -46,5 +46,5 @@ jobs:
         cd ..
         set CL=/I"./myincl"
         copy lunar\*.lib .
-        nmake -f vc.mak
+        nmake -f msvc.mak
       shell: cmd
