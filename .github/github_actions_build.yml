@@ -1,0 +1,50 @@
+# Shameless copy of @AlastairUK's fine work for the jpl_eph repo.
+# Aside from the comment,  this should be a byte-for-byte copy.
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  buildUbuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: make
+      run: |
+        git clone https://github.com/Bill-Gray/lunar
+        cd lunar
+        make
+        make install
+        cd ..
+        make
+
+  buildOSX:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: make
+      run: |
+        git clone https://github.com/Bill-Gray/lunar
+        cd lunar
+        make CLANG=Y
+        make install
+        cd ..
+        make CLANG=Y
+
+  buildWindows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: make
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        git clone https://github.com/Bill-Gray/lunar
+        mkdir myincl
+        cd lunar
+        nmake -f lunar.mak
+        nmake -f lunar.mak install
+        cd ..
+        set CL=/I"./myincl"
+        copy lunar\*.lib .
+        nmake -f vc.mak
+      shell: cmd
