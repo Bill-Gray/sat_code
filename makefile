@@ -96,10 +96,19 @@ install:
 	$(MKDIR) $(INSTALL_DIR)/bin
 	cp sat_id$(EXE)  $(INSTALL_DIR)/bin
 
+install_lib:
+	$(MKDIR) $(LIB_DIR)
+	cp libsatell.a $(LIB_DIR)
+	cp norad.h     $(INSTALL_DIR)/include
+
 uninstall:
 	rm $(INSTALL_DIR)/lib/libsatell.a
 	rm $(INSTALL_DIR)/include/norad.h
 	rm $(INSTALL_DIR)/bin/sat_id
+
+uninstall_lib:
+	rm $(INSTALL_DIR)/lib/libsatell.a
+	rm $(INSTALL_DIR)/include/norad.h
 
 OBJS= sgp.o sgp4.o sgp8.o sdp4.o sdp8.o deep.o basics.o get_el.o common.o tle_out.o
 
