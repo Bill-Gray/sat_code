@@ -130,6 +130,8 @@ static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
 
       while( rval[i] != 10 && rval[i] != 13 && rval[i])
          i++;
+      while( i && rval[i - 1] == ' ')
+         i--;        /* drop trailing spaces */
       rval[i] = '\0';
       }
    return( rval);
