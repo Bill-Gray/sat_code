@@ -28,6 +28,7 @@ different as a result).  So this really works,  at present,  only for
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <math.h>
 #include "norad.h"

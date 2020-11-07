@@ -25,7 +25,7 @@ static void error_exit( void)
 
 static const char *err_fgets( char *buff, size_t buffsize, FILE *ifile)
 {
-   const char *rval = fgets( buff, buffsize, ifile);
+   const char *rval = fgets( buff, (int)buffsize, ifile);
 
    assert( rval);
    return( rval);
