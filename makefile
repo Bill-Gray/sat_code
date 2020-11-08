@@ -59,7 +59,7 @@ endif
 
 INCL=$(INSTALL_DIR)/include
 
-all: get_high$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
+all: get_high$(EXE) line2$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
 	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) \
 	tle2mpc$(EXE) dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE)
 
@@ -75,6 +75,7 @@ clean:
 	$(RM) dropouts$(EXE)
 	$(RM) fake_ast$(EXE)
 	$(RM) fix_tles$(EXE)
+	$(RM) line2$(EXE)
 	$(RM) mergetle$(EXE)
 	$(RM) obs_tes2$(EXE)
 	$(RM) obs_test$(EXE)
