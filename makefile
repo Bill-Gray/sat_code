@@ -71,24 +71,25 @@ endif
 
 clean:
 	$(RM) *.o
-	$(RM) get_high$(EXE)
 	$(RM) dropouts$(EXE)
 	$(RM) fake_ast$(EXE)
 	$(RM) fix_tles$(EXE)
+	$(RM) get_high$(EXE)
+	$(RM) get_vect$(EXE)
+	$(RM) libsatell.a
 	$(RM) line2$(EXE)
 	$(RM) mergetle$(EXE)
 	$(RM) obs_tes2$(EXE)
 	$(RM) obs_test$(EXE)
 	$(RM) out_comp$(EXE)
-	$(RM) libsatell.a
 	$(RM) sat_id$(EXE)
 	$(RM) sat_id2$(EXE)
 	$(RM) test2$(EXE)
-	$(RM) tle_date$(EXE)
-	$(RM) tle2mpc$(EXE)
-	$(RM) tle_date.cgi
 	$(RM) test_out$(EXE)
 	$(RM) test_sat$(EXE)
+	$(RM) tle2mpc$(EXE)
+	$(RM) tle_date$(EXE)
+	$(RM) tle_date.cgi
 
 install:
 	$(MKDIR) $(LIB_DIR)
