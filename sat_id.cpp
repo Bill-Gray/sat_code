@@ -227,9 +227,26 @@ static int get_station_code_data( char *station_code_data,
          exit( -4);
          }
       fclose( ifile);
-      cached_data[size] = '\0';
       if( verbose)
          printf( "Station codes: %u bytes read\n", (unsigned)size);
+      ifile = local_then_config_fopen( "rovers.txt", "rb");
+      if( ifile)
+         {                             /* if 'rovers.txt' is available, */
+         size_t size2;               /* append its data to ObsCodes.htm */
+
+         fseek( ifile, 0L, SEEK_END);
+         size2 = (size_t)ftell( ifile);
+         fseek( ifile, 0L, SEEK_SET);
+         cached_data = (char *)realloc( cached_data, size + size2 + 1);
+         if( fread( cached_data + size, 1, size2, ifile) != size2)
+            {
+            printf( "Failed to read 'rovers.txt'\n");
+            exit( -4);
+            }
+         fclose( ifile);
+         size += size2;
+         }
+      cached_data[size] = '\0';
       }
    if( !cached_ptr || memcmp( cached_ptr, mpc_code, 3))
       {
@@ -302,9 +319,12 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
          if( !get_station_code_data( station_data, obs.text + 77))
             {
-            sscanf( station_data + 3, "%lf %lf %lf", &obs.lon,
-                                     &obs.rho_cos_phi, &obs.rho_sin_phi);
-            obs.lon *= PI / 180.;
+            mpc_code_t code_data;
+
+            get_mpc_code_info( &code_data, station_data);
+            obs.lon = code_data.lon;
+            obs.rho_cos_phi = code_data.rho_cos_phi;
+            obs.rho_sin_phi = code_data.rho_sin_phi;
             if( count == n_allocated)
                {
                n_allocated += 10 + n_allocated / 2;
