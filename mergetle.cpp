@@ -10,7 +10,13 @@ orbital period,  etc.)   */
 #include <math.h>
 
 #define TLE struct tle
-#define MAX_TLES 20000
+#define MAX_TLES 200000
+
+/* As of late 2020,  NORAD numbers are stored in five digits.  There's
+some possibility of that being bumped up to nine digits,  in which
+case I'll have to revisit this code.         */
+
+#define MAX_NORAD_NUMBER 100000
 
 TLE
    {
@@ -190,7 +196,7 @@ static void error_exit( void)
 int main( const int argc, const char **argv)
 {
    TLE *tles = (TLE *)calloc( MAX_TLES, sizeof( TLE));
-   char *already_found = (char *)calloc( 100000, sizeof( char));
+   char *already_found = (char *)calloc( MAX_NORAD_NUMBER, sizeof( char));
    int n_found = 0, i, strip_names = 0;
    char sort_method = 0;
    const char *output_filename = "out.tle";
