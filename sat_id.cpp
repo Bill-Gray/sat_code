@@ -153,8 +153,13 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
 #if !defined( _WIN32)
 void make_config_dir_name( char *oname, const char *iname)
 {
+#ifdef ON_LINE_VERSION
+   strcpy( oname, getenv( "DOCUMENT_ROOT"));
+   strcat( oname, "/");
+#else
    strcpy( oname, getenv( "HOME"));
    strcat( oname, "/.find_orb/");
+#endif
    strcat( oname, iname);
 }
 
@@ -885,8 +890,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             char time_buff[40];
 
             full_ctime( time_buff, mjd_end + 2400000.5, FULL_CTIME_YMD);
-            printf( "WARNING: TLEs in '%s' run out on %s\n",
-                           tle_file_name, time_buff);
+            printf( "WARNING: TLEs in '%s' run out on %s (%.2f days)\n",
+                           tle_file_name, time_buff, mjd_end - curr_mjd);
             }
          if( !got_obs_in_range( objects, n_objects, mjd_start + 2400000.5,
                                             mjd_end + 2400000.5))
