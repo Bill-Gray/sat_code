@@ -13,10 +13,10 @@ jobs:
       run: |
         git clone https://github.com/Bill-Gray/lunar
         cd lunar
-        make liblunar.a
+        make ERRORS=Y liblunar.a
         make install
         cd ..
-        make
+        make ERRORS=Y
 
   buildOSX:
     runs-on: macOS-latest
@@ -26,10 +26,10 @@ jobs:
       run: |
         git clone https://github.com/Bill-Gray/lunar
         cd lunar
-        make CLANG=Y liblunar.a
+        make CC=clang ERRORS=Y liblunar.a
         make install
         cd ..
-        make CLANG=Y
+        make CC=clang ERRORS=Y
 
   buildWindows:
     runs-on: windows-latest

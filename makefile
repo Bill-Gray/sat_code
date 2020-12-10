@@ -69,6 +69,10 @@ ifdef DEBUG
 	CFLAGS += -g
 endif
 
+ifdef ERRORS
+	CFLAGS += -Werror
+endif
+
 clean:
 	$(RM) *.o
 	$(RM) dropouts$(EXE)
