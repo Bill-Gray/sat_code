@@ -40,6 +40,7 @@ int main( const int unused_argc, const char **unused_argv)
 
    avoid_runaway_process( 15);
 #endif         /* _WIN32 */
+   setbuf( lock_file, NULL);
    INTENTIONALLY_UNUSED_PARAMETER( unused_argc);
    INTENTIONALLY_UNUSED_PARAMETER( unused_argv);
    printf( "Content-type: text/html\n\n");
