@@ -99,7 +99,7 @@ OBSERVATION
    {
    char text[81];
    double jd, ra, dec;
-   double lon, rho_cos_phi, rho_sin_phi;
+   double observer_loc[3];
    };
 
 typedef struct
@@ -327,9 +327,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
             mpc_code_t code_data;
 
             get_mpc_code_info( &code_data, station_data);
-            obs.lon = code_data.lon;
-            obs.rho_cos_phi = code_data.rho_cos_phi;
-            obs.rho_sin_phi = code_data.rho_sin_phi;
+            observer_cartesian_coords( obs.jd, code_data.lon,
+                  code_data.rho_cos_phi, code_data.rho_sin_phi, obs.observer_loc);
             if( count == n_allocated)
                {
                n_allocated += 10 + n_allocated / 2;
@@ -570,13 +569,10 @@ static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
          const OBSERVATION *optr, tle_t *tle,
          const double *sat_params)
 {
-   double observer_loc[3];
    double pos[3]; /* Satellite position vector */
    double t_since = (optr->jd - tle->epoch) * minutes_per_day;
    int sxpx_rval;
 
-   observer_cartesian_coords( optr->jd, optr->lon,
-           optr->rho_cos_phi, optr->rho_sin_phi, observer_loc);
    if( select_ephemeris( tle))
       sxpx_rval = SDP4( t_since, tle, sat_params, pos, NULL);
    else
@@ -586,7 +582,7 @@ static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
       sxpx_rval = 0;
    if( verbose > 2 && sxpx_rval)
       printf( "TLE failed for JD %f: %d\n", optr->jd, sxpx_rval);
-   get_satellite_ra_dec_delta( observer_loc, pos, ra, dec, dist);
+   get_satellite_ra_dec_delta( optr->observer_loc, pos, ra, dec, dist);
    return( sxpx_rval);
 }
 
