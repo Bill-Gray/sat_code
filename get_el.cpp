@@ -155,6 +155,51 @@ static double get_high_value( const char *iptr)
    return( (double)rval);
 }
 
+/* Traditionally,  NORAD numbers were stored as five digits.  In 2020, new
+detectors threatened to go past 100K objects;  the 'Alpha-5' scheme allows
+the first byte to be replaced by an uppercase letter,  with I and O
+skipped.  That gets us to 339999.  Note that NORAD is encouraging us to
+switch to other formats (XML, JSON,  etc.) that allow nine-digit numbers.
+
+   Should 340K numbers prove insufficient,  the following scheme would
+use all 34^5 = 45435424 possible combinations.  d = digit, L = letter,
+x = either.  We also could use lowercase letters and some others to
+get 10^9 combinations within five bytes with backward compatibility.
+
+(1) ddddd = 'traditional' scheme provides 100000 combinations;
+(2) Ldddd = Alpha5 scheme adds 240000;
+(3) xxxxL = 34^4*24      = 32072064 more;
+(4) xxxLd = 34^3*24*10   =  9432960 more;
+(5) xxLdd = 34^2*24*100  =  2774400 more;
+(6) xLddd = 34*24*1000   =   816000 more. */
+
+static int base34_to_int( const char c)
+{
+   int offset;
+
+   if( c >= '0' && c <= '9')
+      offset = '0';
+   else if( c >= 'A' && c <= 'H')
+      offset = 'A' - 10;
+   else if( c >= 'J' && c <= 'N')
+      offset = 'J' - 18;
+   else if( c >= 'P' && c <= 'Z')
+      offset = 'P' - 23;
+   else
+      return( -1);
+   return( c - offset);
+}
+
+static int get_norad_number( const char *buff)
+{
+   const int ten_thousands = base34_to_int( *buff);
+
+   if( ten_thousands >= 0)
+      return( ten_thousands * 10000 + atoi( buff + 1));
+   else
+      return( 0);
+}
+
 static inline double get_eight_places( const char *ptr)
 {
    return( (double)atoi( ptr) + (double)atoi(ptr + 4) * 1e-8);
@@ -213,7 +258,7 @@ int DLL_FUNC parse_elements( const char *line1, const char *line2, tle_t *sat)
          year += 100;
       sat->epoch = get_eight_places( line1 + 20) + J1900
              + (double)( year * 365 + (year - 1) / 4);
-      sat->norad_number = atoi( line1 + 2);
+      sat->norad_number = get_norad_number( line1 + 2);
       memcpy( tbuff, line1 + 64, 4);
       tbuff[4] = '\0';
       sat->bulletin_number = atoi( tbuff);

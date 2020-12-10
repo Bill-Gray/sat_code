@@ -127,6 +127,40 @@ static void put_sci( char *obuff, double ival)
       }
 }
 
+/* See comments for get_norad_number( ) in get_el.cpp.  This
+performs the reverse function of setting the five bytes corresponding
+to a NORAD number. */
+
+static char int_to_base_34( const int digit)
+{
+   int rval;
+
+   if( digit < 0 || digit >= 34)
+      rval = ' ';
+   else if( digit < 10)
+      rval = '0' + digit;
+   else
+      {
+      rval = 'A' + digit - 10;
+      if( digit >= 18)      /* J-N: skip I */
+         rval++;
+      if( digit >= 23)      /* P-Z : skip O */
+         rval++;
+      }
+   return( rval);
+}
+
+static void store_norad_number_in_alpha5( char *obuff, const int norad_number)
+{
+   if( norad_number < 0 || norad_number >= 340000)
+      strcpy( obuff, "     ");
+   else
+      {
+      *obuff = int_to_base_34( norad_number / 10000);
+      sprintf( obuff + 1, "%04d", norad_number % 10000);
+      }
+}
+
 /* SpaceTrack TLEs have,  on the second line,  leading zeroes in front of the
 inclination,  ascending node,  argument of perigee,  and mean motion.  Which
 is why I've used this format string :
@@ -142,7 +176,7 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
 {
    long year = (long)( tle->epoch - J1900) / 365 + 1;
    double day_of_year;
-   char *line2;
+   char *line2, norad_num_text[6];
 
    do
       {
@@ -158,10 +192,11 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
       year = 56;
       day_of_year = 0.;
       }
+   store_norad_number_in_alpha5( norad_num_text, tle->norad_number);
    sprintf( buff,
 /*                                     xndt2o    xndd6o   bstar  eph bull */
-           "1 %05d%c %-8s %02ld%12.8f -.000hit00 +00000-0 +00000-0 %c %4dZ\n",
-           tle->norad_number, tle->classification, tle->intl_desig,
+           "1 %5s%c %-8s %02ld%12.8f -.000hit00 +00000-0 +00000-0 %c %4dZ\n",
+           norad_num_text, tle->classification, tle->intl_desig,
            year % 100L, day_of_year,
            tle->ephemeris_type, tle->bulletin_number);
    if( buff[20] == ' ')       /* fill in leading zeroes for day of year */
@@ -190,7 +225,7 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
       }
    add_tle_checksum_data( buff);
    line2 = buff + strlen( buff);
-   sprintf( line2, "2 %05d ", tle->norad_number);
+   sprintf( line2, "2 %5s ", norad_num_text);
    if( tle->ephemeris_type != 'H')     /* "normal",  standard TLEs */
       sprintf( line2 + 8, "%08.4f %08.4f %07ld %08.4f %08.4f %011.8f",
            zero_to_two_pi( tle->xincl) * 180. / PI,
