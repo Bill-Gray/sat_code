@@ -165,6 +165,8 @@ int main( const int argc, const char **argv)
                greg_day_to_dmy( ijd, &day, &month, &year);
                printf( "   Epoch: JD %.5f = %ld-%02d-%02d.%05d\n", tle.epoch,
                               year, month, day, (int)( frac * 100000.));
+               printf( "NORAD number %7d         ", tle.norad_number);
+               printf( "Semimajor axis : %4f km\n", a1 * earth_radius_in_km);
                }
             if( err_code)
                printf( "Checksum error %d\n", err_code);
