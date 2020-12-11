@@ -1171,7 +1171,7 @@ int main( const int argc, const char **argv)
             char buff[30];
 
             printf( "\n%.12s ", objects[i].obs->text);
-            for( size_t j = 0; objects[i].matches[j].norad_number; j++)
+            for( size_t j = 0; objects[i].matches[j].norad_number && j < MAX_MATCHES; j++)
                printf( " %05d %s", objects[i].matches[j].norad_number,
                          unpack_intl( objects[i].matches[j].intl_desig, buff));
             }
