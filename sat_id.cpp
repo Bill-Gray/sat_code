@@ -321,8 +321,24 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          {
          char station_data[100];
 
-         j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
-         if( !get_station_code_data( station_data, obs.text + 77))
+         if( buff[14] == 's')         /* satellite obs */
+            {
+            size_t i;
+
+            assert( count > 0);
+            for( i = 0; i < 3; i++)
+               {
+               const char *tptr = buff + 34 + i * 12;
+               double coord = atof( tptr + 1);
+
+               if( *tptr == '-')
+                  coord = -coord;
+               else if( *tptr != '+')
+                  fprintf( stderr, "Malformed satellite offset\n%s\n", buff);
+               rval[count - 1].observer_loc[i] = coord;
+               }
+            }
+         else if( !get_station_code_data( station_data, obs.text + 77))
             {
             mpc_code_t code_data;
 
@@ -335,6 +351,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                rval = (OBSERVATION *)realloc( rval,
                                     (n_allocated + 1) * sizeof( OBSERVATION));
                }
+            j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
             rval[count] = obs;
             count++;
             }
