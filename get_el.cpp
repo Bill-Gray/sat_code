@@ -177,6 +177,8 @@ static int base34_to_int( const char c)
 {
    int offset;
 
+   if( c == ' ')
+      return( 0);
    if( c >= '0' && c <= '9')
       offset = '0';
    else if( c >= 'A' && c <= 'H')
