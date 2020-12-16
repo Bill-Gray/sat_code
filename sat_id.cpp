@@ -117,8 +117,23 @@ typedef struct
    match_t matches[MAX_MATCHES];
 } object_t;
 
+/* When we encounter a line for a spacecraft-based observation's offset
+from the geocenter (a "second line" in the MPC's punched-card format system),
+we store that offset in an offset_t structure.  Once the file has been
+read in,  we go back and match the offsets to their corresponding observations.
+If the lines aren't in proper order (which happens),  we'll fix it,  and
+can detect errors where we get one line but not the other. */
+
+typedef struct
+{
+   double jd, posn[3];
+   char mpc_code[4];
+} offset_t;
+
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
 #define TIME_EPSILON (1./86400.)
+#define EARTH_MAJOR_AXIS    6378137.
+#define EARTH_MINOR_AXIS    6356752.
 
 static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
 {
@@ -301,6 +316,47 @@ static int get_station_code_data( char *station_code_data,
    return( cached_ptr ? 0 : -1);
 }
 
+/* Spacecraft-based observations have the spacecraft position given on a
+second line.  See https://www.minorplanetcenter.net/iau/info/SatelliteObs.html
+for details.  That documentation is a little outdated;  the decimal point
+can actually be anywhere within the twelve-byte field.   */
+
+static double get_spacecraft_coord( const char *iptr)
+{
+   char tbuff[13];
+   size_t i = 0;
+   double rval;
+
+   strncpy( tbuff, iptr, 13);
+   tbuff[12] = '\0';
+   while( tbuff[i] != '+' && tbuff[i] != '-' && tbuff[i])
+      i++;
+   if( !tbuff[i])
+      rval = 0.;
+   else
+      {
+      rval = atof( tbuff + i + 1);
+      if( tbuff[i] == '-')
+         rval = -rval;
+      }
+   return( rval);
+}
+
+/* Code to check if a 'second line' (v for roving observer or s for
+spacecraft observation) matches a 'first line' (the one that has the actual
+astrometry).  If the date and obscode match,  and the observation doesn't
+already have a non-geocentric position set,  then we have a match.  */
+
+static bool offset_matches_obs( const offset_t *offset, const OBSERVATION *obs)
+{
+   if( offset->jd == obs->jd && !obs->observer_loc[0]
+               && !strcmp( offset->mpc_code, obs->text + 77)
+               && !obs->observer_loc[1] && !obs->observer_loc[2])
+      return( true);
+   else
+      return( false);
+}
+
 /* Loads up MPC-formatted 80-column observations from a file.  Makes
 a pass to find out how many observations there are,  allocates space
 for them,  then reads them again to actually load the observations. */
@@ -311,7 +367,9 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
    OBSERVATION *rval = NULL, obs;
    void *ades_context = init_ades2mpc( );
    char buff[400];
-   size_t count = 0, n_allocated = 0;
+   size_t count = 0, n_allocated = 0, n_offsets = 0, i;
+   offset_t *offsets = NULL;
+   int n_errors_found = 0;
 
    assert( ades_context);
    memset( &obs, 0, sizeof( OBSERVATION));
@@ -321,22 +379,45 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          {
          char station_data[100];
 
-         if( buff[14] == 's')         /* satellite obs */
-            {
-            size_t i;
+         if( buff[14] == 's' || buff[14] == 'v')
+            {                 /* satellite obs or roving observer */
+            offset_t toff;
 
-            assert( count > 0);
-            for( i = 0; i < 3; i++)
+            toff.jd = obs.jd;
+            strcpy( toff.mpc_code, buff + 77);
+            if( buff[14] == 's')
                {
-               const char *tptr = buff + 34 + i * 12;
-               double coord = atof( tptr + 1);
-
-               if( *tptr == '-')
-                  coord = -coord;
-               else if( *tptr != '+')
-                  fprintf( stderr, "Malformed satellite offset\n%s\n", buff);
-               rval[count - 1].observer_loc[i] = coord;
+               for( i = 0; i < 3; i++)
+                  {
+                  toff.posn[i] = get_spacecraft_coord( buff + 34 + i * 12);
+                  if( buff[32] == '2')    /* posn is actually in AU */
+                     toff.posn[i] /= AU_IN_KM;
+                  if( !toff.posn[i])
+                     {
+                     if( n_errors_found++ < 10)
+                        fprintf( stderr, "Malformed satellite offset\n%s\n", buff);
+                     i = 3;
+                     }
+                  }
                }
+            else
+               {
+               double lat, lon, alt_in_meters, rho_sin_phi, rho_cos_phi;
+
+               if( sscanf( buff + 34, "%lf %lf %lf", &lon, &lat, &alt_in_meters) != 3)
+                  if( n_errors_found++ < 10)
+                     fprintf( stderr, "Couldn't parse roving observer:\n%s\n", buff);
+               lon *= PI / 180.;
+               lat *= PI / 180.;
+               lat_alt_to_parallax( lat, alt_in_meters,
+                          &rho_cos_phi, &rho_sin_phi,
+                          EARTH_MAJOR_AXIS, EARTH_MINOR_AXIS);
+               observer_cartesian_coords( obs.jd, lon, rho_cos_phi,
+                                        rho_sin_phi, toff.posn);
+               }
+            n_offsets++;
+            offsets = (offset_t *)realloc( offsets, n_offsets * sizeof( offset_t));
+            offsets[n_offsets - 1] = toff;
             }
          else if( !get_station_code_data( station_data, obs.text + 77))
             {
@@ -366,6 +447,31 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                break;
    *n_found = count;
    free_ades2mpc_context( ades_context);
+
+            /* for each spacecraft offset,  look for the corresponding
+            observation.  If we don't find one,  emit a warning. */
+   for( i = 0; i < n_offsets; i++)
+      {
+      size_t j = 0;
+
+      while( j < count && !offset_matches_obs( offsets + i, rval + j))
+         j++;
+      if( j == count)
+         {
+         if( n_errors_found++ < 10)
+            fprintf( stderr, "Unmatched artsat obs for JD %f\n", offsets[i].jd);
+         }
+      else
+         memcpy( rval[j].observer_loc, offsets[i].posn, 3 * sizeof( double));
+      }
+          /* Warn about obs with no offset data,  too. */
+   for( i = 0; i < count; i++)
+      if( !rval[i].observer_loc[0] && !rval[i].observer_loc[1] && !rval[i].observer_loc[2])
+         if( n_errors_found++ < 10)
+            fprintf( stderr, "No position for this observation :\n%s\n", rval[i].text);
+   free( offsets);
+   if( n_errors_found >= 10)
+      fprintf( stderr, "Showing first ten of %d errors\n", n_errors_found);
    return( rval);
 }
 
