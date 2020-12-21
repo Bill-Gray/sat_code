@@ -1153,6 +1153,9 @@ int main( const int argc, const char **argv)
             case 'b':
                t_high = get_time_from_string( 0, param, FULL_CTIME_YMD, NULL);
                break;
+            case 'c':
+               check_all_tles = true;
+               break;
             case 'l':
                lookahead_warning_days = atof( param);
                break;
