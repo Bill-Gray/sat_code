@@ -158,13 +158,21 @@ static double get_high_value( const char *iptr)
 /* Traditionally,  NORAD numbers were stored as five digits.  In 2020, new
 detectors threatened to go past 100K objects;  the 'Alpha-5' scheme allows
 the first byte to be replaced by an uppercase letter,  with I and O
-skipped.  That gets us to 339999.  Note that NORAD is encouraging us to
-switch to other formats (XML, JSON,  etc.) that allow nine-digit numbers.
+skipped.  That gets us to 339999 :
 
-   Should 340K numbers prove insufficient,  the following scheme would
-use all 34^5 = 45435424 possible combinations.  d = digit, L = letter,
-x = either.  We also could use lowercase letters and some others to
-get 10^9 combinations within five bytes with backward compatibility.
+https://www.space-track.org/documentation#tle-alpha5
+
+   Note that Alpha-5 is referred to as a "stopgap".  Near the bottom of
+the above link,  "space-track.org encourages users to switch to... XML,
+KVN,  or JSON",  (partly) because these will handle nine-digit catalog
+numbers.
+
+   Should 340K numbers prove insufficient (and it sounds as if it will), the
+following (unofficial,  my proposal) scheme would use all 34^5 = 45435424
+possible combinations.  d = digit, L = letter, x = either. We also could use
+lowercase letters and some others to get 10^9 combinations within five bytes
+with backward compatibility.  (Which may eventually be needed;  it sounds as
+if Space-Track may make some use of the full nine-digit range.)
 
 (1) ddddd = 'traditional' scheme provides 100000 combinations;
 (2) Ldddd = Alpha5 scheme adds 240000;
