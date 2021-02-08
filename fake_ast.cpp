@@ -64,7 +64,7 @@ int main( const int argc, const char **argv)
          if( err_val)
             printf( "WARNING: TLE parsing error %d\n", err_val);
          for( i = 0; i < 3; i++)
-            observer_loc[i] = '\0';
+            observer_loc[i] = 0.;
          if( is_deep)
             SDP4_init( sat_params, &tle);
          else
