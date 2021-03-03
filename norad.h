@@ -126,6 +126,8 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle);
 void DLL_FUNC sxpx_set_implementation_param( const int param_index,
                                               const int new_param);
 void DLL_FUNC sxpx_set_dpsec_integration_step( const double new_step_size);
+void DLL_FUNC lunar_solar_position( const double jd,
+                    double *lunar_xyzr, double *solar_xyzr);
 
 #ifdef __cplusplus
 }                       /* end of 'extern "C"' section */

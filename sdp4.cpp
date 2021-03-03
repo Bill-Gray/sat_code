@@ -12,7 +12,7 @@ rather drastic set of simplifications.  We include the earth,
 moon,  and sun,  but with low-precision approximations for the
 positions of those last two.  References are to Meeus' _Astronomical
 Algorithms_,  2nd edition.  Results are in meters from the center
-of the earth.
+of the earth,  in ecliptic coordinates of date.
 
 The numerical integration is done using the 'classic' RK4 algorithm,
 as described at (for example)
@@ -32,7 +32,7 @@ the following model,  which tries to balance accuracy and speed.  Just as
 you shouldn't try to "improve" SGP4/SDP4,  you shouldn't try to "improve"
 the following;  it'll only break backward compatibility.  */
 
-static void lunar_solar_position( const double jd, double *lunar_xyzr, double *solar_xyzr)
+static void raw_lunar_solar_position( const double jd, double *lunar_xyzr, double *solar_xyzr)
 {
    const double j2000 = 2451545;    /* 1.5 Jan 2000 = JD 2451545 */
    const double t_cen = (jd - j2000) / 36525.;
@@ -93,7 +93,7 @@ static void lunar_solar_position( const double jd, double *lunar_xyzr, double *s
 moon positions at the exact same time we needed for the preceding step.
 Caching those positions saves recomputing them. */
 
-static void cached_lunar_solar_position( const double jd,
+void DLL_FUNC lunar_solar_position( const double jd,
                     double *lunar_xyzr, double *solar_xyzr)
 {
    static double curr_jd = 0., lunar[4], solar[4];
@@ -102,12 +102,14 @@ static void cached_lunar_solar_position( const double jd,
    if( curr_jd != jd)
       {
       curr_jd = jd;
-      lunar_solar_position( jd, lunar, solar);
+      raw_lunar_solar_position( jd, lunar, solar);
       }
    for( i = 0; i < 4; i++)
       {
-      lunar_xyzr[i] = lunar[i];
-      solar_xyzr[i] = solar[i];
+      if( lunar_xyzr)
+         lunar_xyzr[i] = lunar[i];
+      if( solar_xyzr)
+         solar_xyzr[i] = solar[i];
       }
 }
 
@@ -195,7 +197,7 @@ static int calc_accel( const double jd, const double *pos, double *accel)
 
    for( i = 0; i < 3; i++)
       accel[i] = accel_factor * pos[i];
-   cached_lunar_solar_position( jd, lunar_xyzr, solar_xyzr);
+   lunar_solar_position( jd, lunar_xyzr, solar_xyzr);
    for( obj_idx = 0; obj_idx < 2; obj_idx++)
       {
       double *opos = (obj_idx ? lunar_xyzr : solar_xyzr);
