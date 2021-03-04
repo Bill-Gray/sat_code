@@ -59,9 +59,10 @@ endif
 
 INCL=$(INSTALL_DIR)/include
 
-all: get_high$(EXE) line2$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) out_comp$(EXE) \
-	test_sat$(EXE) test2$(EXE) sat_id$(EXE) sat_id2$(EXE) test_out$(EXE) \
-	tle2mpc$(EXE) dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE)
+all: dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE) get_high$(EXE) \
+	line2$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) \
+	out_comp$(EXE) sat_eph$(EXE) sat_id$(EXE) sat_id2$(EXE) summarize$(EXE) \
+	test_out$(EXE) test_sat$(EXE) test2$(EXE) tle2mpc$(EXE)
 
 CFLAGS=-Wextra -Wall -O3 -pedantic
 
@@ -86,8 +87,10 @@ clean:
 	$(RM) obs_tes2$(EXE)
 	$(RM) obs_test$(EXE)
 	$(RM) out_comp$(EXE)
+	$(RM) sat_eph$(EXE)
 	$(RM) sat_id$(EXE)
 	$(RM) sat_id2$(EXE)
+	$(RM) summarize$(EXE)
 	$(RM) test2$(EXE)
 	$(RM) test_out$(EXE)
 	$(RM) test_sat$(EXE)
@@ -152,11 +155,17 @@ libsatell.a: $(OBJS)
 	rm -f libsatell.a
 	ar rv libsatell.a $(OBJS)
 
+sat_eph$(EXE):	 	sat_eph.c	observe.o libsatell.a
+	$(CC) $(CFLAGS) -o sat_eph$(EXE) -I $(INCL) sat_eph.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
+
 sat_id$(EXE):	 	sat_id.cpp	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp observe.o  libsatell.a
 	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
+
+summarize$(EXE):	 	summarize.c	observe.o libsatell.a
+	$(CC) $(CFLAGS) -o summarize$(EXE) -I $(INCL) summarize.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 test2$(EXE):	 	test2.o sgp.o libsatell.a
 	$(CC) $(CFLAGS) -o test2$(EXE) test2.o sgp.o libsatell.a -lm
