@@ -1,0 +1,124 @@
+-a(date) : only consider observations after (date)
+-b(date) : only consider observations before (date)
+-c       : check all TLEs
+-l(num)  : set "lookahead" warning on expiring TLEs (default=7 days)
+-m(num)  : ignore TLEs in orbits lower than (num) revs/day (default=6)
+-n(num)  : only look for NORAD ID (num)
+-o(filename)  : output astrometry with IDs added
+-r(num)  : set tolerance for computed-observed dist
+-t(filename)  : set input TLE file name
+-u            : show a summary of results
+-y(num)  : set tolerance for apparent motion mismatch
+-z(num)       : ignore objects slower than (num) arcmin/sec
+
+   -a(date) tells Sat_ID to ignore observations from after a certain
+date;  -b(date) tells it to ignore observations from _before_ a
+certain time.  The date format is flexible,  but something like
+"-a2021Jan13" is a good choice (four-digit year and month names
+mean there's no confusion about what's the date,  what's the month,
+and what's the year... dates such as "11/09/08" can lead to madness.)
+
+   For example,  I might check my large,  multi-year NEOCP archives
+for just the objects found in late January 2021 by running
+
+sat_id neocp.old -a2021jan15 -b2021feb1
+
+   -c is basically for debugging purposes.  Normally,  Sat_ID gets its
+idea of which TLEs to check from the file 'tle_list.txt',  which gives
+it a long list of files.  And normally,  it'll ignore most of them;
+give it some observations from 2021,  and it's bright enough to realize
+that the TLEs for 2020 can be skipped.  -c causes Sat_ID to check those
+files anyway,  which sometimes lets me see my blunders (files that don't
+exist or are corrupted or don't actually contain TLEs.)
+
+   -l sets a "lookahead" time for expiring TLEs.  I can usually only
+compute TLEs for just so far into the future.  If they're about to run
+out for a particular object in (by default) a week,  you get a warning
+message to that effect.  Except that on my own machine,  I run it with
+-l10,  so I'll know three days ahead of everybody else and can post
+updated TLEs before they even get a warning.
+
+   On my own machine,  though,  I run it with -l10.  That way,  I'll know
+about expiring TLEs three days ahead of everybody else and can post
+updated TLEs before anybody else even sees a warning.  At least,  that's
+the theory... once in a while,  I've been on vacation or something and
+people have seen those errors.
+
+   -m(num) tells Sat_ID to neglect low-earth orbiters : anything making
+more than (num) revolutions around the earth per day,  with (num)
+defaulting to 6 (i.e.,  Sat_ID won't identify objects in orbits lower
+than four hours).
+
+   -n(num) restricts output to the specified NORAD five-digit number.
+Handy when you're just wondering when/where object X got caught.
+
+   -o(filename) causes the input astrometry to be written to the
+output file with COM lines specifying to what the objects were matched.
+The COM lines,  just ahead of the first observation for each object,
+look like
+
+COM 44432U = 2019-040A
+COM 37175U = 2010-050B
+
+   The above lines are a convenience for Find_Orb.  The first would tell
+it than the next object it finds is actually NORAD 44432 = 2019-040A
+= Spektr-RG;  it would "remap" the designation of the next observation
+it found to that.  The second would do the same thing,  except for
+NORAD 37175 = 2010-050B = Chang'e 2 booster.  This lets me avoid
+having to alter the original IDs in the astrometry,  but means that
+I want to compute an orbit for 2010-050B,  I'll get the data for it
+despite different designations being used.
+
+   -r(num) says that the observed position of an object and the computed
+position from a TLE are considered to be 'matching' if the positions are
+within (num) degrees.   Defaults to four degrees,  which is probably too
+large... but see above comments : even with the very loose cutoffs,  we
+rarely falsely ID a rock as an artsat.
+
+   -t(filename) resets the input TLE filename.  This defaults to
+~/tles/tle_list.txt.  But let's say I'm wondering what Space-Track can
+identify without my help.  I might then set -t all_tle.txt,  where
+'all_tle.txt' is the master set of Space-Track TLEs.  Or I may have
+created some batch of TLEs for a new object,  and I'll run the MPC's
+ITF file or my accumulated NEOCP observations against it to see if I
+can spot any other finds of the new object.
+
+   -u causes Sat_ID to emit a "summary" at the end,  listing the
+objects it found in the input file and any matches.
+
+   -y(num) says that the observed _motion_ of an object and the computed
+_motion_ from a TLE are considered to be a match if the motion is within
+20 arcseconds.  That is to say,  if the observations say the object
+moved 1300 arcseconds in RA between first and last observation,  and
+the TLEs compute a motion of 1319 arcsec over that time,  it is (just
+barely) a match.
+
+   20 arcseconds may seem like a lot,  and I used to have it set much
+lower than that.  The problem is that if timing is off slightly,  or the
+object fades in and out a bit,  you can easily have more of a motion
+mismatch than you'd expect.  And in general,  setting this 'loose'
+tolerance only rarely results in objects being falsely identified as
+artsats.
+
+   -z(speed) sets a lower limit on speed.  By default,  anything
+moving slower than 0.001'/sec is simply tossed out as too slow to
+possibly be an artsat;  that would be -z.001.  As with the -y option
+described above,  this default is probably excessively low (could result
+in mistakenly identifying some rocks as artsats).  But -- as with that
+option -- it appears to be unusual for such false detections to occur.
+I originally set both limts them to be tighter,  but I found that Sat_ID
+would occasionally fail to identify real artsats. Generally speaking,
+it's hard for a rock to move so fast,  and in the same direction and
+part of the sky,  as an artsat that it would fool you.
+
+   Note that this comes from the standpoint of a guy fed a steady
+diet of asteroid data,  trying to filter out the occasional artsat.
+If you are deliberately targeting artsats and only rarely seeing
+rocks, you could set a still lower speed limit with -z,  and a higher
+limit on observed motion (-y),  _and_ a higher position mismatch
+tolerance (-r),  and not get a flood of rocks misidentified as
+artsats.  In fact,  I do set looser limits when examining the NEOCP;
+I get some rocks misidentified as artsats as a result,  which I then
+am usually able to rubbish.  But those looser limits also allow me to
+occasionally say "this really is an artsat; it's just wandered
+further than expected from where the TLEs expected it to be."

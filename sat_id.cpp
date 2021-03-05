@@ -679,12 +679,16 @@ within .2 degrees are shown.\n\n\
 Additional command-line arguments are:\n\
    -a YYYYMMDD  Only use observations after this time\n\
    -b YYYYMMDD  Only use observations before this time\n\
+   -c           Check all TLEs for existence\n\
    -m (nrevs)   Only consider objects with fewer # revs/day (default=6)\n\
    -n (NORAD)   Only consider objects with this NORAD identifier\n\
    -r (radius)  Only show matches within this radius in degrees (default=4)\n\
    -t (fname)   Get TLEs from this filename\n\
    -v           Verbose output. '-v2' gets still more verboseness.\n\
-   -z (rate)    Only consider observations above 'rate' deg/hr (default=.001)\n");
+   -y           Set tolerance for apparent motion mismatch\n\
+   -z (rate)    Only consider observations above 'rate' deg/hr (default=.001)\n\
+   \n\
+   See 'sat_id.txt' for additional details.\n");
    exit( exit_code);
 }
 
