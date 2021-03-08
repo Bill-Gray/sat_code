@@ -40,7 +40,10 @@ a date/time preceding the first,  you get a negative rate of motion that's
 off by 180 degrees.  Fixed this. */
 
 /* 17 Nov 2006:  artificial satellite data is now being provided in a
-file named 'ALL_TLE.TXT'.  I've modified the default TLE to match. */
+file named 'ALL_TLE.TXT'.  I've modified the default TLE to match.
+(Note : since modified to be read from 'tle_list.txt',  as found in
+the https://www.github.com/Bill-Gray/tles repository.  This allows
+for multiple TLEs to be read.) */
 
 /* 22 Oct 2012:  minor cosmetic changes,  such as making constant variables
 of type 'const',  updating URL for the MPC station code file,  adding a
@@ -674,8 +677,8 @@ static void error_exit( const int exit_code)
    printf(
 "sat_id takes the name of an input file of MPC-formatted (80-column)\n\
 astrometry as a command-line argument.  It searches for matches between\n\
-the observation data and satellites in 'ALL_TLE.TXT'.  By default,  matches\n\
-within .2 degrees are shown.\n\n\
+the observation data and satellites in TLEs specified in 'tle_list.txt'.\n\
+By default,  matches within .2 degrees are shown.\n\n\
 Additional command-line arguments are:\n\
    -a YYYYMMDD  Only use observations after this time\n\
    -b YYYYMMDD  Only use observations before this time\n\
