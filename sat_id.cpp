@@ -892,7 +892,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                                           optr1->dec, optr2->dec, &motion_pa);
                      motion_rate *= arcminutes_per_radian;
                      if( dt)
-                        motion_rate /= dt * hours_per_day;
+                        motion_rate /= dt * minutes_per_day;
                      line1[8] = line1[16] = '\0';
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
@@ -941,7 +941,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                         motion_rate = angular_sep( ra - ra2, dec, dec2, &motion_pa);
                         motion_rate *= arcminutes_per_radian;
                         if( dt)
-                           motion_rate /= dt * hours_per_day;
+                           motion_rate /= dt * minutes_per_day;
                         printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n",
                             motion_rate, motion_pa);
                         }
