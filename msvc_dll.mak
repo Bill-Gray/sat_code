@@ -1,4 +1,7 @@
 # MSVC makefile for a DLL version
+# NOTE: hasn't been used or updated in years;  some work required
+# before it would be fit for purpose.
+
 all:  test2.exe test_sat.exe obs_test.exe obs_tes2.exe sat_id.exe test_out.exe sm_sat.dll out_comp.exe
 
 out_comp.exe: out_comp.cpp
@@ -24,8 +27,8 @@ obs_tes2.exe: obs_tes2.obj sat_code.lib
    cl obs_tes2.obj sat_code.lib >> err
    type err
 
-sat_id.exe: sat_id.obj sat_code.lib
-   cl sat_id.obj sat_code.lib >> err
+sat_id.exe: sat_id.obj sat_util.obj sat_code.lib
+   cl sat_id.obj sat_util.obj sat_code.lib >> err
    type err
 
 sat_code.lib: sgp.obj sgp4.obj sgp8.obj sdp4.obj sdp8.obj deep.obj \

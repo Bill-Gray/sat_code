@@ -43,8 +43,8 @@ sat_code$(BITS).lib: $(OBJS)
    del sat_code$(BITS).lib
    lib /OUT:sat_code$(BITS).lib $(OBJS)
 
-sat_id.exe: sat_id.obj observe.obj sat_code$(BITS).lib
-   $(LINK)  sat_id.obj observe.obj sat_code$(BITS).lib lunar$(BITS).lib
+sat_id.exe: sat_id.obj sat_util.obj observe.obj sat_code$(BITS).lib
+   $(LINK)  sat_id.obj sat_util.obj observe.obj sat_code$(BITS).lib lunar$(BITS).lib
 
 test2.exe: test2.obj sat_code$(BITS).lib
    $(LINK) test2.obj sat_code$(BITS).lib
