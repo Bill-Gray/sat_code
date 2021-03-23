@@ -158,11 +158,11 @@ libsatell.a: $(OBJS)
 sat_eph$(EXE):	 	sat_eph.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_eph$(EXE) -I $(INCL) sat_eph.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
-sat_id$(EXE):	 	sat_id.cpp	observe.o sat_util.o libsatell.a
-	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp observe.o sat_util.o libsatell.a -lm -L $(LIB_DIR) -llunar
+sat_id$(EXE):	 	sat_id.cpp sat_util.c	observe.o libsatell.a
+	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp sat_util.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
-sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp observe.o sat_util.o libsatell.a
-	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp observe.o sat_util.o libsatell.a -lm -L $(LIB_DIR) -llunar
+sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp sat_util.c observe.o libsatell.a
+	$(CC) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp sat_util.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 summarize$(EXE):	 	summarize.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o summarize$(EXE) -I $(INCL) summarize.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
