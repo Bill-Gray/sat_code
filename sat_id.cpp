@@ -94,6 +94,7 @@ int snprintf( char *string, const size_t max_len, const char *format, ...);
 #include "mpc_func.h"
 #include "afuncs.h"
 #include "date.h"
+#include "sat_util.h"
 
 #define OBSERVATION struct observation
 #define MAX_MATCHES 7
@@ -138,23 +139,6 @@ typedef struct
 #define EARTH_MAJOR_AXIS    6378137.
 #define EARTH_MINOR_AXIS    6356752.
 
-static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
-{
-   char *rval = fgets( buff, buffsize, ifile);
-
-   if( rval)
-      {
-      size_t i = 0;
-
-      while( rval[i] != 10 && rval[i] != 13 && rval[i])
-         i++;
-      while( i && rval[i - 1] == ' ')
-         i--;        /* drop trailing spaces */
-      rval[i] = '\0';
-      }
-   return( rval);
-}
-
 static int get_mpc_data( OBSERVATION *obs, const char *buff)
 {
    obs->jd = extract_date_from_mpc_report( buff, NULL);
@@ -167,39 +151,6 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
    obs->text[80] = '\0';
    return( 0);
 }
-
-#if !defined( _WIN32)
-void make_config_dir_name( char *oname, const char *iname)
-{
-#ifdef ON_LINE_VERSION
-   strcpy( oname, getenv( "DOCUMENT_ROOT"));
-   strcat( oname, "/");
-#else
-   strcpy( oname, getenv( "HOME"));
-   strcat( oname, "/.find_orb/");
-#endif
-   strcat( oname, iname);
-}
-
-static FILE *local_then_config_fopen( const char *filename, const char *permits)
-{
-   FILE *rval = fopen( filename, permits);
-
-   if( !rval)
-      {
-      char ext_filename[255];
-
-      make_config_dir_name( ext_filename, filename);
-      rval = fopen( ext_filename, "rb");
-      }
-   return( rval);
-}
-#else
-static FILE *local_then_config_fopen( const char *filename, const char *permits)
-{
-   return( fopen( filename, permits));
-}
-#endif
 
 /* This loads up the file 'ObsCodes.html' into memory on its first call.
 Then,  given an MPC code,  it finds the corresponding line and copies
