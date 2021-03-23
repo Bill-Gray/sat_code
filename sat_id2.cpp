@@ -32,7 +32,7 @@ int main( const int unused_argc, const char **unused_argv)
    double low_speed_cutoff = 0.001;  /* anything slower than this is almost */
    const int argc = 6;               /* certainly not an artsat */
    FILE *lock_file = fopen( "lock.txt", "w");
-   size_t bytes_written = 0;
+   size_t bytes_written = 0, i;
    int cgi_status;
    extern int verbose;
 #ifndef _WIN32
@@ -66,7 +66,7 @@ int main( const int unused_argc, const char **unused_argv)
       }
    while( !get_cgi_data( field, buff, NULL, max_buff_size))
       {
-//    fprintf( lock_file, "Field '%s'\n", field);
+      fprintf( lock_file, "Field '%s'\n", field);
       if( !strcmp( field, "TextArea") || !strcmp( field, "upfile"))
          {
          if( strlen( buff) > 70)
@@ -114,7 +114,10 @@ int main( const int unused_argc, const char **unused_argv)
    sprintf( tptr, "-z%f", low_speed_cutoff);
    argv[5] = tptr;
    argv[6] = NULL;
+   for( i = 0; argv[i]; i++)
+      fprintf( lock_file, "arg %d: '%s'\n", (int)i, argv[i]);
    sat_id_main( argc, argv);
+   fprintf( lock_file, "sat_id_main called\n");
    free( buff);
    printf( "On-line Sat_ID compiled " __DATE__ " " __TIME__ " UTC-5h\n");
    printf( "See <a href='https://www.github.com/Bill-Gray/sat_code'>"
