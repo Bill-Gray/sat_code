@@ -32,6 +32,7 @@ int main( const int argc, const char **argv)
           "11037ND  Spektr-R booster",
           "12003B ! Delta 4 R/B",
           "13024B ! WGS-5 R/B",
+          "15005B ! Inmarsat 5F2 booster",
           "15011A ! MMS 1",
           "15011B ! MMS 2",
           "15011C ! MMS 3",
