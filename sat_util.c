@@ -27,8 +27,15 @@ void make_config_dir_name( char *oname, const char *iname)
    strcpy( oname, getenv( "DOCUMENT_ROOT"));
    strcat( oname, "/");
 #else
-   strcpy( oname, getenv( "HOME"));
-   strcat( oname, "/.find_orb/");
+   const char *home_dir = getenv( "HOME");
+
+   if( home_dir)
+      {
+      strcpy( oname, home_dir);
+      strcat( oname, "/.find_orb/");
+      }
+   else
+      *oname = '\0';
 #endif
    strcat( oname, iname);
 }
