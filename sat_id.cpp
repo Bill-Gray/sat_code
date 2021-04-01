@@ -793,6 +793,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    int rval = 0, n_tles_found = 0;
    bool check_updates = true;
    bool look_for_tles = true;
+   static bool error_check_date_ranges = true;
    const clock_t time_started = clock( );
 
    if( !tle_file)
@@ -958,13 +959,29 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          max_expected_error = atof( line2 + 12);
       else if( !strncmp( line2, "# TLEs expected:", 16))
          n_tles_expected_in_file = atoi( line2 + 17);
+      else if( !strncmp( line2, "# Range_check ", 14))
+         error_check_date_ranges = (line2[14] != '0');
       else if( !strncmp( line2, "# Ephem range:", 14))
          {
          const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
-         double mjd_start, mjd_end;
+         double mjd_start, mjd_end, tle_step;
          double curr_mjd = mjd_1970 + (double)time( NULL) / 86400.;
+         int n_read;
 
-         sscanf( line2 + 14, "%lf %lf %lf\n", &mjd_start, &mjd_end, &tle_range);
+         n_read = sscanf( line2 + 14, "%lf %lf %lf\n", &mjd_start, &mjd_end, &tle_step);
+         assert( n_read == 3);
+         if( error_check_date_ranges && tle_start)   /* do date ranges specified */
+            {              /* in tle_list.txt and in the TLE file itself match? */
+            const double tolerance = 0.001;     /* an allowance for roundoff */
+
+            if( fabs( mjd_start + 2400000.5 - tle_start) > tolerance)
+               fprintf( stderr, "WARNING: starting date for TLEs in '%s' "
+                        "mismatches that in tle_list.txt\n", tle_file_name);
+            if( fabs( mjd_end + 2400000.5 - tle_start - tle_range) > tolerance)
+               fprintf( stderr, "WARNING: ending date for TLES in '%s' "
+                        "mismatches that in tle_list.txt\n", tle_file_name);
+            }
+         tle_range = tle_step;
          if( check_updates && mjd_end < curr_mjd + lookahead_warning_days)
             {
             char time_buff[40];
