@@ -290,6 +290,24 @@ static const char *get_arg( const char **argv)
    return( rval);
 }
 
+static void fix_desig( char *desig)
+{
+   size_t i;
+   int bitmask = 0;
+
+   for( i = 0; i < 10 && desig[i]; i++)
+      if( isdigit( desig[i]))
+         bitmask |= (1 << (int)i);
+   if( i >= 9 && bitmask == 0xef && desig[4] == '-')
+      {
+      desig[0] = desig[2];                   /* it's in YYYY-NNNA form; */
+      desig[1] = desig[3];                   /* cvt to YYNNNA form */
+      for( i = 5; desig[i - 1]; i++)
+         desig[i - 3] = desig[i];
+      }
+}
+
+
 static void error_help( void)
 {
    printf( "Mandatory 'sat_eph' arguments:\n"
@@ -350,7 +368,11 @@ int dummy_main( const int argc, const char **argv)
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-' && argv[i][1] == 'o')
          {
-         e.desig = get_arg( argv + i);
+         char desig[30];
+
+         strncpy( desig, get_arg( argv + i), 29);
+         fix_desig( desig);
+         e.desig = desig;
          generate_artsat_ephems( PATH_TO_TLES, &e);
          }
    return( 0);
@@ -379,13 +401,13 @@ int main( const int argc, const char **argv)
 
 int main( const int unused_argc, const char **unused_argv)
 {
-   const char *argv[20];
+   const char *argv[2000];
    const size_t max_buff_size = 40000;       /* room for 500 obs */
    char *buff = (char *)malloc( max_buff_size);
-   char field[30], time_text[80], obj_name[30];
+   char field[30], time_text[80];
    char num_steps[30], step_size[30], obs_code[10];
    FILE *lock_file = fopen( "lock.txt", "w");
-   int cgi_status, i;
+   int cgi_status, i, argc = 9;
 #ifndef _WIN32
    extern char **environ;
 
@@ -403,7 +425,7 @@ int main( const int unused_argc, const char **unused_argv)
       return( 0);
       }
    fprintf( lock_file, "We're in\n");
-   *time_text = *obj_name = *num_steps = *step_size = *obs_code = '\0';
+   *time_text = *num_steps = *step_size = *obs_code = '\0';
 #ifndef _WIN32
    for( size_t i = 0; environ[i]; i++)
       fprintf( lock_file, "%s\n", environ[i]);
@@ -421,8 +443,22 @@ int main( const int unused_argc, const char **unused_argv)
       fprintf( lock_file, "Field '%s'\n", field);
       if( !strcmp( field, "time") && strlen( buff) < sizeof( time_text))
          strcpy( time_text, buff);
-      if( !strcmp( field, "obj_name") && strlen( buff) < sizeof( obj_name))
+      if( !strcmp( field, "obj_name"))
+         {
+         char *obj_name = (char *)malloc( strlen( buff) + 1);
+
          strcpy( obj_name, buff);
+         argv[argc++] = "-o";
+         argv[argc++] = obj_name;
+         }
+      else if( !memcmp( field, "obj_", 4))      /* selected an object check-box */
+         {
+         char *obj_name = (char *)malloc( strlen( field) - 3);
+
+         strcpy( obj_name, field + 4);
+         argv[argc++] = "-o";
+         argv[argc++] = obj_name;
+         }
       if( !strcmp( field, "num_steps") && strlen( buff) < sizeof( num_steps))
          strcpy( num_steps, buff);
       if( !strcmp( field, "step_size") && strlen( buff) < sizeof( step_size))
@@ -443,18 +479,16 @@ int main( const int unused_argc, const char **unused_argv)
    argv[0] = "sat_eph";
    argv[1] = "-t";
    argv[2] = time_text;
-   argv[3] = "-o";
-   argv[4] = obj_name;
+   argv[3] = "-c";
+   argv[4] = obs_code;
    argv[5] = "-n";
    argv[6] = num_steps;
    argv[7] = "-s";
    argv[8] = step_size;
-   argv[9] = "-c";
-   argv[10] = obs_code;
-   argv[11] = NULL;
+   argv[argc] = NULL;
    for( i = 0; argv[i]; i++)
       fprintf( lock_file, "arg %d: '%s'\n", (int)i, argv[i]);
-   dummy_main( 11, argv);
+   dummy_main( argc, argv);
    fprintf( lock_file, "dummy_main called\n");
    free( buff);
    printf( "On-line Sat_eph compiled " __DATE__ " " __TIME__ " UTC-5h\n");
