@@ -61,7 +61,7 @@ INCL=$(INSTALL_DIR)/include
 
 all: dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE) get_high$(EXE) \
 	line2$(EXE) mergetle$(EXE) obs_tes2$(EXE) obs_test$(EXE) \
-	out_comp$(EXE) sat_eph$(EXE) sat_id$(EXE) sat_id2$(EXE) summarize$(EXE) \
+	out_comp$(EXE) sat_cgi$(EXE) sat_eph$(EXE) sat_id$(EXE) sat_id2$(EXE) summarize$(EXE) \
 	test_out$(EXE) test_sat$(EXE) test2$(EXE) tle2mpc$(EXE)
 
 CFLAGS=-Wextra -Wall -O3 -pedantic
@@ -87,6 +87,7 @@ clean:
 	$(RM) obs_tes2$(EXE)
 	$(RM) obs_test$(EXE)
 	$(RM) out_comp$(EXE)
+	$(RM) sat_cgi$(EXE)
 	$(RM) sat_eph$(EXE)
 	$(RM) sat_id$(EXE)
 	$(RM) sat_id2$(EXE)
@@ -157,6 +158,9 @@ libsatell.a: $(OBJS)
 
 sat_eph$(EXE):	 	sat_eph.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_eph$(EXE) -I $(INCL) sat_eph.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
+
+sat_cgi$(EXE):	 	sat_eph.c	observe.o libsatell.a
+	$(CC) $(CFLAGS) -o sat_cgi$(EXE) -I $(INCL) sat_eph.c observe.o -DON_LINE_VERSION libsatell.a -lm -L $(LIB_DIR) -llunar
 
 sat_id$(EXE):	 	sat_id.cpp sat_util.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp sat_util.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar

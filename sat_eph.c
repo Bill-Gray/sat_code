@@ -86,7 +86,11 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
       printf( "Should examine '%s'\n", filename);
    snprintf( line0, sizeof( line0), "%s/%s", path_to_tles, filename);
    ifile = fopen( line0, "rb");
-   assert( ifile);
+   if( !ifile)
+      {
+      printf( "'%s' not opened\n", line0);
+      exit( 0);
+      }
    *line0 = *line1 = '\0';
    while( fgets_trimmed( line2, sizeof( line2), ifile))
       {
@@ -168,7 +172,11 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 
    snprintf( buff, sizeof( buff), "%s/tle_list.txt", path_to_tles);
    ifile = fopen( buff, "rb");
-   assert( ifile);
+   if( !ifile)
+      {
+      printf( "'%s' not opened\n", buff);
+      exit( 0);
+      }
    while( ephem_lines_generated != e->n_steps &&
                           fgets_trimmed( buff, sizeof( buff), ifile))
       {
@@ -201,14 +209,23 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
    char buff[200];
    int got_it = 0, planet;
 
-   assert( ifile);
+   if( !ifile)
+      {
+      printf( "'%s' not found\n", obscode_file_name);
+      exit( 0);
+      }
    while( !got_it && fgets_trimmed( buff, sizeof( buff), ifile))
       if( !memcmp( mpc_code, buff, 3))
          {
          mpc_code_t c;
 
          planet = get_mpc_code_info( &c, buff);
-         assert( planet == 3);
+         if( planet != 3)
+            {
+            printf( "MPC code '%s' is for planet %d\n",
+                        mpc_code, planet);
+            exit( 0);
+            }
          e->lat = c.lat;
          e->lon = c.lon;
          e->alt = c.alt;
@@ -221,7 +238,7 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
 }
 
 #ifdef ON_LINE_VERSION
-   #define OBSCODES_DOT_HTML_FILENAME  "/home/projectp/public_html/cgi-bin/fo"
+   #define OBSCODES_DOT_HTML_FILENAME  "/home/projectp/public_html/cgi-bin/fo/ObsCodes.htm"
    #define PATH_TO_TLES                "/home/projectp/public_html/tles"
 #else
    #define OBSCODES_DOT_HTML_FILENAME  "/home/phred/.find_orb/ObsCodes.htm"
@@ -240,7 +257,7 @@ static void error_help( void)
            "   -v(#) : level of verbosity\n");
 }
 
-int main( const int argc, const char **argv)
+int dummy_main( const int argc, const char **argv)
 {
    int i;
    ephem_t e;
@@ -248,7 +265,7 @@ int main( const int argc, const char **argv)
    if( argc < 3)
       {
       error_help( );
-      return( -1);
+      return( 0);
       }
    memset( &e, 0, sizeof( ephem_t));
    for( i = 1; i < argc; i++)
@@ -278,11 +295,123 @@ int main( const int argc, const char **argv)
                verbose = 1 + atoi( arg);
                break;
             default:
+               printf( "Unrecognized option '%s'\n", argv[i]);
                error_help( );
-               return( -1);
+               return( 0);
             }
          }
    e.jd_end   = e.jd_start + (double)e.n_steps * e.step_size;
+   if( verbose)
+      printf( "arguments parsed;  JDs %f to %f\n", e.jd_start, e.jd_end);
    generate_artsat_ephems( PATH_TO_TLES, &e);
    return( 0);
 }
+
+#ifndef ON_LINE_VERSION
+int main( const int argc, const char **argv)
+{
+   return( dummy_main( argc, argv));
+}
+#else
+
+#include <errno.h>
+#ifdef __has_include
+   #if __has_include(<cgi_func.h>)
+       #include "cgi_func.h"
+   #else
+       #error   \
+         'cgi_func.h' not found.  This project depends on the 'lunar'\
+         library.  See www.github.com/Bill-Gray/lunar .\
+         Clone that repository,  'make'  and 'make install' it.
+   #endif
+#else
+   #include "cgi_func.h"
+#endif
+
+int main( const int unused_argc, const char **unused_argv)
+{
+   const char *argv[20];
+   const size_t max_buff_size = 40000;       /* room for 500 obs */
+   char *buff = (char *)malloc( max_buff_size);
+   char field[30], time_text[80], obj_name[30];
+   char num_steps[30], step_size[30], obs_code[10];
+   FILE *lock_file = fopen( "lock.txt", "w");
+   int cgi_status, i;
+#ifndef _WIN32
+   extern char **environ;
+
+   avoid_runaway_process( 15);
+#endif         /* _WIN32 */
+   setbuf( lock_file, NULL);
+   INTENTIONALLY_UNUSED_PARAMETER( unused_argc);
+   INTENTIONALLY_UNUSED_PARAMETER( unused_argv);
+   printf( "Content-type: text/html\n\n");
+   printf( "<html> <body> <pre>\n");
+   if( !lock_file)
+      {
+      printf( "<p> Server is busy.  Try again in a minute or two. </p>");
+      printf( "<p> Your artsat ephemerides are very important to us! </p>");
+      return( 0);
+      }
+   fprintf( lock_file, "We're in\n");
+   *time_text = *obj_name = *num_steps = *step_size = *obs_code = '\0';
+#ifndef _WIN32
+   for( size_t i = 0; environ[i]; i++)
+      fprintf( lock_file, "%s\n", environ[i]);
+#endif
+   cgi_status = initialize_cgi_reading( );
+   fprintf( lock_file, "CGI status %d\n", cgi_status);
+   if( cgi_status <= 0)
+      {
+      printf( "<p> <b> CGI data reading failed : error %d </b>", cgi_status);
+      printf( "This isn't supposed to happen.</p>\n");
+      return( 0);
+      }
+   while( !get_cgi_data( field, buff, NULL, max_buff_size))
+      {
+      fprintf( lock_file, "Field '%s'\n", field);
+      if( !strcmp( field, "time") && strlen( buff) < sizeof( time_text))
+         strcpy( time_text, buff);
+      if( !strcmp( field, "obj_name") && strlen( buff) < sizeof( obj_name))
+         strcpy( obj_name, buff);
+      if( !strcmp( field, "num_steps") && strlen( buff) < sizeof( num_steps))
+         strcpy( num_steps, buff);
+      if( !strcmp( field, "step_size") && strlen( buff) < sizeof( step_size))
+         {
+         char *tptr = strchr( buff, 'v');
+
+         if( tptr)
+            {
+            verbose = atoi( tptr + 1);
+            *tptr = '\0';
+            }
+         strcpy( step_size, buff);
+         }
+      if( !strcmp( field, "obs_code") && strlen( buff) < sizeof( obs_code))
+         strcpy( obs_code, buff);
+      }
+   fprintf( lock_file, "Fields read\n");
+   argv[0] = "sat_eph";
+   argv[1] = "-t";
+   argv[2] = time_text;
+   argv[3] = "-o";
+   argv[4] = obj_name;
+   argv[5] = "-n";
+   argv[6] = num_steps;
+   argv[7] = "-s";
+   argv[8] = step_size;
+   argv[9] = "-c";
+   argv[10] = obs_code;
+   argv[11] = NULL;
+   for( i = 0; argv[i]; i++)
+      fprintf( lock_file, "arg %d: '%s'\n", (int)i, argv[i]);
+   dummy_main( 11, argv);
+   fprintf( lock_file, "dummy_main called\n");
+   free( buff);
+   printf( "On-line Sat_eph compiled " __DATE__ " " __TIME__ " UTC-5h\n");
+   printf( "See <a href='https://www.github.com/Bill-Gray/sat_code'>"
+               "https://www.github.com/Bill-Gray/sat_code</a> for source code\n");
+   printf( "</pre> </body> </html>");
+   return( 0);
+}
+#endif
