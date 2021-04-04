@@ -151,11 +151,11 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
 
                if( !i)
                   {
-                  printf( "Ephemerides for %05d = %s%.2s-%s\n",
+                  printf( "\nEphemerides for %05d = %s%.2s-%s\n",
                               tle.norad_number,
                               (atoi( tle.intl_desig) > 57000) ? "19" : "20",
                               tle.intl_desig, tle.intl_desig + 2);
-                  printf( "%s", header_text);
+                  printf( "%s\n%s", line0, header_text);
                   }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
                                  | FULL_CTIME_LEADING_ZEROES);
@@ -269,6 +269,27 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
    #define PATH_TO_TLES                "/home/phred/tles"
 #endif
 
+static const char *get_arg( const char **argv)
+{
+   const char *rval;
+
+   if( argv[0][0] == '-' && argv[0][1])
+      {
+      if( !argv[0][2] && argv[1])
+         rval = argv[1];
+      else
+         rval = argv[0] + 2;
+      }
+   else
+      rval = NULL;
+   if( !rval)
+      {
+      printf( "Can't get an argument : '%s'\n", argv[0]);
+      exit( 0);
+      }
+   return( rval);
+}
+
 static void error_help( void)
 {
    printf( "Mandatory 'sat_eph' arguments:\n"
@@ -295,8 +316,7 @@ int dummy_main( const int argc, const char **argv)
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-' && argv[i][1])
          {
-         const char *arg = (argv[i][2] || i == argc - 1 ?
-                                             argv[i] + 2 : argv[i + 1]);
+         const char *arg = get_arg( argv + i);
 
          switch( argv[i][1])
             {
@@ -313,7 +333,7 @@ int dummy_main( const int argc, const char **argv)
                e.step_size = atof( arg);
                break;
             case 'o':
-               e.desig = arg;
+               /* Will handle below */
                break;
             case 'v':
                verbose = 1 + atoi( arg);
@@ -327,7 +347,12 @@ int dummy_main( const int argc, const char **argv)
    e.jd_end   = e.jd_start + (double)e.n_steps * e.step_size;
    if( verbose)
       printf( "arguments parsed;  JDs %f to %f\n", e.jd_start, e.jd_end);
-   generate_artsat_ephems( PATH_TO_TLES, &e);
+   for( i = 1; i < argc; i++)
+      if( argv[i][0] == '-' && argv[i][1] == 'o')
+         {
+         e.desig = get_arg( argv + i);
+         generate_artsat_ephems( PATH_TO_TLES, &e);
+         }
    return( 0);
 }
 
