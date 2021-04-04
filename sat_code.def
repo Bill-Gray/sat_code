@@ -12,7 +12,6 @@ EXPORTS
    SDP8                              @10
    select_ephemeris                  @11
    parse_elements                    @12
-   lat_alt_to_parallax               @13
    observer_cartesian_coords         @14
    get_satellite_ra_dec_delta        @15
    epoch_of_date_to_j2000            @16

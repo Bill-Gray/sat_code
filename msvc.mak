@@ -1,7 +1,7 @@
 # Makefile for MSVC
 all:  dropouts.exe fix_tles.exe line2.exe mergetle.exe obs_test.exe \
-   obs_tes2.exe out_comp.exe sat_id.exe test2.exe test_out.exe \
-   test_sat.exe tle2mpc.exe
+   obs_tes2.exe out_comp.exe sat_eph.exe sat_id.exe  \
+   test2.exe test_out.exe test_sat.exe tle2mpc.exe
 
 COMMON_FLAGS=-nologo -W3 -EHsc -c -FD -D_CRT_SECURE_NO_WARNINGS
 RM=del
@@ -45,6 +45,9 @@ sat_code$(BITS).lib: $(OBJS)
 
 sat_id.exe: sat_id.obj sat_util.obj observe.obj sat_code$(BITS).lib
    $(LINK)  sat_id.obj sat_util.obj observe.obj sat_code$(BITS).lib lunar$(BITS).lib
+
+sat_eph.exe: sat_eph.obj sat_util.obj observe.obj sat_code$(BITS).lib
+    $(LINK)  sat_eph.obj sat_util.obj observe.obj sat_code$(BITS).lib lunar$(BITS).lib
 
 test2.exe: test2.obj sat_code$(BITS).lib
    $(LINK) test2.obj sat_code$(BITS).lib
