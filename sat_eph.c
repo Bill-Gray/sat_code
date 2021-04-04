@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -18,7 +19,8 @@ typedef struct
 {
    double lat, lon, alt, rho_sin_phi, rho_cos_phi;
    double jd_start, jd_end, step_size;
-   int n_steps, norad_number;
+   int n_steps;
+   const char *desig;
 } ephem_t;
 
 static int verbose = 0;
@@ -71,6 +73,27 @@ static double angle_between( const double *a, const double *b)
    return( rval * 180. / PI);
 }
 
+static inline bool desig_match( const tle_t *tle, const char *desig)
+{
+   size_t i = 0;
+   bool rval = false;
+
+   while( isdigit( desig[i]))
+      i++;
+   if( i == 5)
+      {
+      if( !desig[i])       /* desig is all digits -> it's the NORAD # */
+         rval = (atoi( desig) == tle->norad_number);
+      else
+         {
+         i = strlen( desig);
+         if( i > 5 && i < 9)
+            rval = !memcmp( tle->intl_desig, desig, i) && tle->intl_desig[i] <= ' ';
+         }
+      }
+   return( rval);
+}
+
 static const char *header_text =
            "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)\n";
 
@@ -103,7 +126,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
          show_it = (jd_tle < e->jd_end && jd_tle + tle_range > e->jd_start);
          }
       else if( show_it && parse_elements( line1, line2, &tle) >= 0
-                     && tle.norad_number == e->norad_number)
+                     && desig_match( &tle, e->desig))
          {
          double sat_params[N_SAT_PARAMS], jd = e->jd_start;
          size_t i, j;
@@ -187,8 +210,9 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
                   && get_time_from_string( 0., buff + 20, FULL_CTIME_YMD, NULL) > e->jd_start)
             is_in_range = 1;
          }
-      if( !memcmp( buff, "# ID:", 5) && atoi( buff + 5) != e->norad_number)
-         id_matches = 0;
+      if( !memcmp( buff, "# ID:", 5))
+         if( strcmp( e->desig, buff + 13) && atoi( buff + 5) != atoi( e->desig))
+            id_matches = 0;
       if( !memcmp( buff, "# Include ", 10))
          {
          if( is_in_range && id_matches)
@@ -289,7 +313,7 @@ int dummy_main( const int argc, const char **argv)
                e.step_size = atof( arg);
                break;
             case 'o':
-               e.norad_number = atoi( arg);
+               e.desig = arg;
                break;
             case 'v':
                verbose = 1 + atoi( arg);
