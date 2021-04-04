@@ -21,6 +21,8 @@ typedef struct
    int n_steps, norad_number;
 } ephem_t;
 
+static int verbose = 0;
+
 static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
 {
    char *rval = fgets( buff, buffsize, ifile);
@@ -69,14 +71,21 @@ static double angle_between( const double *a, const double *b)
    return( rval * 180. / PI);
 }
 
-static int show_ephems_from( const ephem_t *e, const char *filename)
-{
-   FILE *ifile = fopen( filename, "rb");
-   char line0[100], line1[100], line2[100];
-   int show_it = 0;
-   double jd_tle = 0.;
+static const char *header_text =
+           "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)\n";
 
-   printf( "Should examine '%s'\n", filename);
+static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
+                                  const char *filename)
+{
+   FILE *ifile;
+   char line0[100], line1[100], line2[100];
+   int show_it = 1, n_lines_generated = 0;
+   double jd_tle = 0., tle_range = 1e+10;
+
+   if( verbose)
+      printf( "Should examine '%s'\n", filename);
+   snprintf( line0, sizeof( line0), "%s/%s", path_to_tles, filename);
+   ifile = fopen( line0, "rb");
    assert( ifile);
    *line0 = *line1 = '\0';
    while( fgets_trimmed( line2, sizeof( line2), ifile))
@@ -86,9 +95,11 @@ static int show_ephems_from( const ephem_t *e, const char *filename)
       if( !memcmp( line2, "# MJD ", 6))
          {
          jd_tle = atof( line2 + 6) + 2400000.5;
-         show_it = (jd_tle < e->jd_end && jd_tle + 1. > e->jd_start);
+         tle_range = 1.;
+         show_it = (jd_tle < e->jd_end && jd_tle + tle_range > e->jd_start);
          }
-      else if( show_it && parse_elements( line1, line2, &tle) >= 0)
+      else if( show_it && parse_elements( line1, line2, &tle) >= 0
+                     && tle.norad_number == e->norad_number)
          {
          double sat_params[N_SAT_PARAMS], jd = e->jd_start;
          size_t i, j;
@@ -98,16 +109,27 @@ static int show_ephems_from( const ephem_t *e, const char *filename)
             SDP4_init( sat_params, &tle);
          else
             SGP4_init( sat_params, &tle);
-         printf( "Got TLEs for %f :\n", jd);
-         printf( "%s\n%s\n%s\n", line0, line1, line2);
+         if( verbose > 1)
+            {
+            printf( "Got TLEs for %f :\n", jd);
+            printf( "%s\n%s\n%s\n", line0, line1, line2);
+            }
          for( i = 0; i < (size_t)e->n_steps; i++, jd += e->step_size)
-            if( jd >= jd_tle && jd < jd_tle + 1.)
+            if( jd >= jd_tle && jd < jd_tle + tle_range)
                {
                char buff[90], dec_buff[20], ra_buff[20];
                double pos[3], vel[3], obs_pos[3], ra, dec, dist;
                const double t_since = (jd - tle.epoch) * minutes_per_day;
                double solar_xyzr[4], topo_posn[3];
 
+               if( !i)
+                  {
+                  printf( "Ephemerides for %05d = %s%.2s-%s\n",
+                              tle.norad_number,
+                              (atoi( tle.intl_desig) > 57000) ? "19" : "20",
+                              tle.intl_desig, tle.intl_desig + 2);
+                  printf( "%s", header_text);
+                  }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
                                  | FULL_CTIME_LEADING_ZEROES);
                if( is_deep_type)
@@ -125,26 +147,30 @@ static int show_ephems_from( const ephem_t *e, const char *filename)
                   topo_posn[j] = pos[j] - obs_pos[j];
                lunar_solar_position( jd, NULL, solar_xyzr);
                ecliptic_to_equatorial( solar_xyzr);
-               printf( "%s  %s  %s %+3.0f %4.0f %8.0f\n", buff, ra_buff, dec_buff,
+               printf( "%s  %s  %s %+05.1f %6.1f %8.0f\n", buff, ra_buff, dec_buff,
                      90. - angle_between( topo_posn, obs_pos),     /* alt */
                      angle_between( topo_posn, solar_xyzr), dist);
+               n_lines_generated++;
                }
          }
       strcpy( line0, line1);
       strcpy( line1, line2);
       }
    fclose( ifile);
-   return( 0);
+   return( n_lines_generated);
 }
 
-int generate_artsat_ephems( const ephem_t *e)
+int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 {
-   FILE *ifile = fopen( "tle_list.txt", "rb");
+   FILE *ifile;
    char buff[200];
-   int is_in_range = 0, id_matches = 0, got_ephems = 0;
+   int is_in_range = 0, id_matches = 1, ephem_lines_generated = 0;
 
+   snprintf( buff, sizeof( buff), "%s/tle_list.txt", path_to_tles);
+   ifile = fopen( buff, "rb");
    assert( ifile);
-   while( fgets_trimmed( buff, sizeof( buff), ifile))
+   while( ephem_lines_generated != e->n_steps &&
+                          fgets_trimmed( buff, sizeof( buff), ifile))
       {
       if( !memcmp( buff, "# Range:", 8))
          {
@@ -153,17 +179,20 @@ int generate_artsat_ephems( const ephem_t *e)
                   && get_time_from_string( 0., buff + 20, FULL_CTIME_YMD, NULL) > e->jd_start)
             is_in_range = 1;
          }
-      if( !memcmp( buff, "# ID:", 5) && atoi( buff + 5) == e->norad_number)
-         id_matches = 1;
+      if( !memcmp( buff, "# ID:", 5) && atoi( buff + 5) != e->norad_number)
+         id_matches = 0;
       if( !memcmp( buff, "# Include ", 10))
          {
          if( is_in_range && id_matches)
-            got_ephems += show_ephems_from( e, buff + 10);
-         is_in_range = id_matches = 0;
+            ephem_lines_generated += show_ephems_from( path_to_tles, e, buff + 10);
+         is_in_range = 0;
+         id_matches = 1;
          }
       }
    fclose( ifile);
-   return( got_ephems);
+   if( ephem_lines_generated)
+      printf( "%s", header_text);
+   return( ephem_lines_generated);
 }
 
 static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_file_name)
@@ -191,19 +220,69 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
    return( got_it ? 0 : -1);
 }
 
+#ifdef ON_LINE_VERSION
+   #define OBSCODES_DOT_HTML_FILENAME  "/home/projectp/public_html/cgi-bin/fo"
+   #define PATH_TO_TLES                "/home/projectp/public_html/tles"
+#else
+   #define OBSCODES_DOT_HTML_FILENAME  "/home/phred/.find_orb/ObsCodes.htm"
+   #define PATH_TO_TLES                "/home/phred/tles"
+#endif
+
+static void error_help( void)
+{
+   printf( "Mandatory 'sat_eph' arguments:\n"
+           "   -c(MPC code) : specify location\n"
+           "   -t(date/time) : starting time of ephemeris\n"
+           "   -n(#) : number of ephemeris steps\n"
+           "   -s(#) : ephemeris step size in days\n"
+           "   -o(#) : five digit NORAD number\n"
+           "Optional arguments:\n"
+           "   -v(#) : level of verbosity\n");
+}
+
 int main( const int argc, const char **argv)
 {
-   if( argc >= 6)
-      {
-      ephem_t e;
+   int i;
+   ephem_t e;
 
-      set_location( &e, argv[1], "/home/phred/.find_orb/ObsCodes.htm");
-      e.jd_start = get_time_from_string( 0., argv[2], FULL_CTIME_YMD, NULL);
-      e.n_steps = atoi( argv[3]);
-      e.step_size = atof( argv[4]);
-      e.jd_end   = e.jd_start + (double)e.n_steps * e.step_size;
-      e.norad_number = atoi( argv[5]);
-      generate_artsat_ephems( &e);
+   if( argc < 3)
+      {
+      error_help( );
+      return( -1);
       }
+   memset( &e, 0, sizeof( ephem_t));
+   for( i = 1; i < argc; i++)
+      if( argv[i][0] == '-' && argv[i][1])
+         {
+         const char *arg = (argv[i][2] || i == argc - 1 ?
+                                             argv[i] + 2 : argv[i + 1]);
+
+         switch( argv[i][1])
+            {
+            case 'c':
+               set_location( &e, arg, OBSCODES_DOT_HTML_FILENAME);
+               break;
+            case 't':
+               e.jd_start = get_time_from_string( 0., arg, FULL_CTIME_YMD, NULL);
+               break;
+            case 'n':
+               e.n_steps = atoi( arg);
+               break;
+            case 's':
+               e.step_size = atof( arg);
+               break;
+            case 'o':
+               e.norad_number = atoi( arg);
+               break;
+            case 'v':
+               verbose = 1 + atoi( arg);
+               break;
+            default:
+               error_help( );
+               return( -1);
+            }
+         }
+   e.jd_end   = e.jd_start + (double)e.n_steps * e.step_size;
+   generate_artsat_ephems( PATH_TO_TLES, &e);
    return( 0);
 }
