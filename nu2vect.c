@@ -1,4 +1,4 @@
-/* Code to read in the Spektr-R state vectors fro .nu files at
+/* Code to read in the Spektr-RG state vectors from .nu files at
 
 ftp://ftp.kiam1.rssi.ru/pub/gps/spectr-rg/nu/
 
@@ -25,7 +25,11 @@ determined by optical astrometry to within a few kilometers.
 is counteracted by a force 1.24601e-5 times as great.  It corresponds
 approximately to an area/mass ratio of 0.015 m^2/kg,  which is
 quite close to what we've been getting from the optical astrometry
-orbit solution.  */
+orbit solution.
+
+   Python code to convert .nu files to STK ephemeris files is at
+
+https://github.com/Satsir/STK/blob/main/nuToEph.py     */
 
 #include <stdio.h>
 #include <stdlib.h>
