@@ -14,7 +14,6 @@
 
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
 
-
 typedef struct
 {
    double lat, lon, alt, rho_sin_phi, rho_cos_phi;
@@ -111,7 +110,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    ifile = fopen( line0, "rb");
    if( !ifile)
       {
-      printf( "'%s' not opened\n", line0);
+      fprintf( stderr, "'%s' not opened\n", line0);
       exit( 0);
       }
    *line0 = *line1 = '\0';
@@ -197,7 +196,7 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
    ifile = fopen( buff, "rb");
    if( !ifile)
       {
-      printf( "'%s' not opened\n", buff);
+      fprintf( stderr, "'%s' not opened\n", buff);
       exit( 0);
       }
    while( ephem_lines_generated != e->n_steps &&
@@ -229,36 +228,43 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 
 static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_file_name)
 {
-   FILE *ifile = fopen( obscode_file_name, "rb");
-   char buff[200];
-   int got_it = 0, planet;
+   mpc_code_t c;
+   int rval = get_lat_lon_info( &c, mpc_code);
 
-   if( !ifile)
+   if( rval)
       {
-      printf( "'%s' not found\n", obscode_file_name);
-      exit( 0);
-      }
-   while( !got_it && fgets_trimmed( buff, sizeof( buff), ifile))
-      if( !memcmp( mpc_code, buff, 3))
-         {
-         mpc_code_t c;
+      FILE *ifile = fopen( obscode_file_name, "rb");
+      char buff[200];
 
-         planet = get_mpc_code_info( &c, buff);
-         if( planet != 3)
-            {
-            printf( "MPC code '%s' is for planet %d\n",
-                        mpc_code, planet);
-            exit( 0);
-            }
-         e->lat = c.lat;
-         e->lon = c.lon;
-         e->alt = c.alt;
-         e->rho_cos_phi = c.rho_cos_phi;
-         e->rho_sin_phi = c.rho_sin_phi;
-         got_it = 1;
+      if( !ifile)
+         {
+         fprintf( stderr, "'%s' not found\n", obscode_file_name);
+         exit( 0);
          }
-   fclose( ifile);
-   return( got_it ? 0 : -1);
+      while( rval && fgets_trimmed( buff, sizeof( buff), ifile))
+         if( !memcmp( mpc_code, buff, 3))
+            {
+            const int planet = get_mpc_code_info( &c, buff);
+
+            if( planet != 3)
+               {
+               fprintf( stderr, "MPC code '%s' is for planet %d\n",
+                           mpc_code, planet);
+               exit( 0);
+               }
+            rval = 0;
+            }
+      fclose( ifile);
+      }
+   if( !rval)
+      {
+      e->lat = c.lat;
+      e->lon = c.lon;
+      e->alt = c.alt;
+      e->rho_cos_phi = c.rho_cos_phi;
+      e->rho_sin_phi = c.rho_sin_phi;
+      }
+   return( rval);
 }
 
 #ifdef ON_LINE_VERSION
@@ -284,7 +290,7 @@ static const char *get_arg( const char **argv)
       rval = NULL;
    if( !rval)
       {
-      printf( "Can't get an argument : '%s'\n", argv[0]);
+      fprintf( stderr, "Can't get an argument : '%s'\n", argv[0]);
       exit( 0);
       }
    return( rval);
@@ -357,7 +363,7 @@ int dummy_main( const int argc, const char **argv)
                verbose = 1 + atoi( arg);
                break;
             default:
-               printf( "Unrecognized option '%s'\n", argv[i]);
+               fprintf( stderr, "Unrecognized option '%s'\n", argv[i]);
                error_help( );
                return( 0);
             }
