@@ -189,7 +189,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
 int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 {
    FILE *ifile;
-   char buff[200];
+   char buff[100];
    int is_in_range = 0, id_matches = 1, ephem_lines_generated = 0;
 
    snprintf( buff, sizeof( buff), "%s/tle_list.txt", path_to_tles);
