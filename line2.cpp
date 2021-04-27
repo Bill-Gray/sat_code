@@ -30,6 +30,7 @@ different as a result).  So this really works,  at present,  only for
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 #include <math.h>
 #include "norad.h"
 #include "watdefs.h"
@@ -99,17 +100,24 @@ static int mpc_code_to_norad_number( const char *mpc_code)
 
 int main( const int argc, const char **argv)
 {
-   FILE *ifile;
    const char *tle_filename = (argc > 2 ? argv[2] : "all_tle.txt");
    const char *astrometry_filename = argv[1];
+   FILE *ifile = (argc > 1 ? fopen( astrometry_filename, "rb") : NULL);
    int is_deep = 0, curr_norad = 0;
    char buff[200];
    double params[N_SAT_PARAMS];
    const double J2000 = 2451545.;
    tle_t tle;
 
-   ifile = fopen( astrometry_filename, "rb");
-   assert( ifile);
+   if( argc > 1 && !ifile)
+      fprintf( stderr, "'%s' not found : %s\n", astrometry_filename, strerror( errno));
+   if( !ifile)
+      {
+      fprintf( stderr, "'line2' takes as a command-line argument the name of the input\n"
+                       "astrometry file.  It sends astrometry with corrected/added\n"
+                       "spacecraft locations to stdout.\n");
+      exit( -1);
+      }
    while( fgets( buff, sizeof( buff), ifile))
       {
       double jd;
