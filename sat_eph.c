@@ -361,7 +361,24 @@ int dummy_main( const int argc, const char **argv)
                e.n_steps = atoi( arg);
                break;
             case 's':
-               e.step_size = atof( arg);
+               if( arg && *arg)
+                  {
+                  const char end_char = arg[strlen( arg) - 1];
+
+                  e.step_size = atof( arg);
+                  switch( end_char)
+                     {
+                     case 'h':
+                        e.step_size /= hours_per_day;
+                        break;
+                     case 'm':
+                        e.step_size /= minutes_per_day;
+                        break;
+                     case 's':
+                        e.step_size /= seconds_per_day;
+                        break;
+                     }
+                  }
                break;
             case 'o':
                /* Will handle below */
