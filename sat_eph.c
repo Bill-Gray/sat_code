@@ -72,6 +72,7 @@ static double angle_between( const double *a, const double *b)
    return( rval * 180. / PI);
 }
 
+
 static inline bool desig_match( const tle_t *tle, const char *desig)
 {
    size_t i = 0;
@@ -95,6 +96,8 @@ static inline bool desig_match( const tle_t *tle, const char *desig)
 
 static const char *header_text =
            "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)\n";
+static const char *geo_header_text =
+           "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)\n";
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename)
@@ -103,6 +106,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    char line0[100], line1[100], line2[100];
    int show_it = 1, n_lines_generated = 0;
    double jd_tle = 0., tle_range = 1e+10;
+   const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
 
    if( verbose)
       printf( "Should examine '%s'\n", filename);
@@ -143,7 +147,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
          for( i = 0; i < (size_t)e->n_steps; i++, jd += e->step_size)
             if( jd >= jd_tle && jd < jd_tle + tle_range)
                {
-               char buff[90], dec_buff[20], ra_buff[20];
+               char buff[90], dec_buff[20], ra_buff[20], alt_buff[7];
                double pos[3], vel[3], obs_pos[3], ra, dec, dist;
                const double t_since = (jd - tle.epoch) * minutes_per_day;
                double solar_xyzr[4], topo_posn[3];
@@ -154,7 +158,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                               tle.norad_number,
                               (atoi( tle.intl_desig) > 57000) ? "19" : "20",
                               tle.intl_desig, tle.intl_desig + 2);
-                  printf( "%s\n%s", line0, header_text);
+                  printf( "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
                   }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
                                  | FULL_CTIME_LEADING_ZEROES);
@@ -173,9 +177,13 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                   topo_posn[j] = pos[j] - obs_pos[j];
                lunar_solar_position( jd, NULL, solar_xyzr);
                ecliptic_to_equatorial( solar_xyzr);
-               printf( "%s  %s  %s %+05.1f %6.1f %8.0f\n", buff, ra_buff, dec_buff,
-                     90. - angle_between( topo_posn, obs_pos),     /* alt */
-                     angle_between( topo_posn, solar_xyzr), dist);
+               if( !is_geocentric)
+                  snprintf( alt_buff, sizeof( alt_buff), " %+05.1f",
+                              90. - angle_between( topo_posn, obs_pos));
+               else
+                  *alt_buff = '\0';
+               printf( "%s  %s  %s%s %6.1f %8.0f\n", buff, ra_buff, dec_buff,
+                     alt_buff, angle_between( topo_posn, solar_xyzr), dist);
                n_lines_generated++;
                }
          }
@@ -312,7 +320,6 @@ static void fix_desig( char *desig)
          desig[i - 3] = desig[i];
       }
 }
-
 
 static void error_help( void)
 {
