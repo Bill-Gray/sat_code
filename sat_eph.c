@@ -194,13 +194,15 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    return( n_lines_generated);
 }
 
+static const char *tle_list_filename = "tle_list.txt";
+
 int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 {
    FILE *ifile;
    char buff[100];
    int is_in_range = 0, id_matches = 1, ephem_lines_generated = 0;
 
-   snprintf( buff, sizeof( buff), "%s/tle_list.txt", path_to_tles);
+   snprintf( buff, sizeof( buff), "%s/%s", path_to_tles, tle_list_filename);
    ifile = fopen( buff, "rb");
    if( !ifile)
       {
@@ -353,6 +355,9 @@ int dummy_main( const int argc, const char **argv)
             {
             case 'c':
                set_location( &e, arg, OBSCODES_DOT_HTML_FILENAME);
+               break;
+            case 'f':
+               tle_list_filename = arg;
                break;
             case 't':
                e.jd_start = get_time_from_string( 0., arg, FULL_CTIME_YMD, NULL);
