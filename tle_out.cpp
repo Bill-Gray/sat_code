@@ -129,7 +129,8 @@ static void put_sci( char *obuff, double ival)
 
 /* See comments for get_norad_number( ) in get_el.cpp.  This
 performs the reverse function of setting the five bytes corresponding
-to a NORAD number. */
+to a NORAD number,  using the 'standard' Alpha-5 method for numbers
+0 to 339000 and the nonstandard Super-5 method beyond that. */
 
 static char int_to_base_34( const int digit)
 {
@@ -150,15 +151,49 @@ static char int_to_base_34( const int digit)
    return( rval);
 }
 
+static void fix_digits( char *obuff, int number, const int n1, const int n2,
+             const int n3, const int n4, const int n5)
+{
+   int digits[5], i;
+
+   digits[0] = n1;
+   digits[1] = n2;
+   digits[2] = n3;
+   digits[3] = n4;
+   digits[4] = n5;
+   for( i = 4; i >= 0; i--)
+      {
+      obuff[i] = int_to_base_34( (number % digits[i]) + (digits[i] == 24 ? 10 : 0));
+      number /= digits[i];
+      }
+   obuff[5] = '\0';
+}
+
+
 static void store_norad_number_in_alpha5( char *obuff, const int norad_number)
 {
-   if( norad_number < 0 || norad_number >= 340000)
-      strcpy( obuff, "     ");
-   else
+   const int N_TYPE_1_2 = 340000;         /* five digits plus Alpha-5 */
+   const int N_TYPE_3 = 34 * 34 * 34 * 34 * 24;       /* xxxxL */
+   const int N_TYPE_4 = 34 * 34 * 34 * 24 * 10;       /* xxxLd */
+   const int N_TYPE_5 = 34 * 34 * 24 * 10 * 10;       /* xxLdd */
+
+   if( norad_number < 0 || norad_number >= 34 * 34 * 34 * 34 * 34)
+      strcpy( obuff, "     ");      /* outside representable range */
+   else if( norad_number < N_TYPE_1_2)
       {
       *obuff = int_to_base_34( norad_number / 10000);
       sprintf( obuff + 1, "%04d", norad_number % 10000);
       }
+   else if( norad_number < N_TYPE_1_2 + N_TYPE_3)
+      fix_digits( obuff, norad_number - N_TYPE_1_2, 34, 34, 34, 34, 24);
+   else if( norad_number < N_TYPE_1_2 + N_TYPE_3 + N_TYPE_4)
+      fix_digits( obuff, norad_number - N_TYPE_1_2 - N_TYPE_3, 34, 34, 34, 24, 10);
+   else if( norad_number < N_TYPE_1_2 + N_TYPE_3 + N_TYPE_4 + N_TYPE_5)
+      fix_digits( obuff, norad_number - N_TYPE_1_2 - N_TYPE_3 - N_TYPE_4,
+                                     34, 34, 24, 10, 10);
+   else
+      fix_digits( obuff, norad_number - N_TYPE_1_2 - N_TYPE_3 - N_TYPE_4 - N_TYPE_5,
+                                     34, 24, 10, 10, 10);
 }
 
 /* SpaceTrack TLEs have,  on the second line,  leading zeroes in front of the
