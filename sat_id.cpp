@@ -139,6 +139,15 @@ typedef struct
 #define EARTH_MAJOR_AXIS    6378137.
 #define EARTH_MINOR_AXIS    6356752.
 
+
+#if !defined( ON_LINE_VERSION) && !defined( _WIN32)
+   #define REVERSE_VIDEO      "\033[0m\033[7m"
+   #define NORMAL_VIDEO       "\033[0m"
+#else
+   #define REVERSE_VIDEO
+   #define NORMAL_VIDEO
+#endif
+
 static int get_mpc_data( OBSERVATION *obs, const char *buff)
 {
    obs->jd = extract_date_from_mpc_report( buff, NULL);
@@ -349,7 +358,9 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                   if( !toff.posn[i])
                      {
                      if( n_errors_found++ < 10)
-                        fprintf( stderr, "Malformed satellite offset\n%s\n", buff);
+                        fprintf( stderr, REVERSE_VIDEO "Malformed satellite offset\n%s\n"
+                                       NORMAL_VIDEO, buff);
+
                      i = 3;
                      }
                   }
@@ -413,7 +424,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
       if( j == count)
          {
          if( n_errors_found++ < 10)
-            fprintf( stderr, "Unmatched artsat obs for JD %f\n", offsets[i].jd);
+            fprintf( stderr, REVERSE_VIDEO "Unmatched artsat obs for JD %f\n"
+                     NORMAL_VIDEO, offsets[i].jd);
          }
       else
          memcpy( rval[j].observer_loc, offsets[i].posn, 3 * sizeof( double));
@@ -422,7 +434,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
    for( i = 0; i < count; i++)
       if( !rval[i].observer_loc[0] && !rval[i].observer_loc[1] && !rval[i].observer_loc[2])
          if( n_errors_found++ < 10)
-            fprintf( stderr, "No position for this observation :\n%s\n", rval[i].text);
+            fprintf( stderr, REVERSE_VIDEO "No position for this observation :\n%s\n"
+                           NORMAL_VIDEO, rval[i].text);
    free( offsets);
    if( n_errors_found >= 10)
       fprintf( stderr, "Showing first ten of %d errors\n", n_errors_found);
@@ -975,11 +988,11 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             const double tolerance = 0.001;     /* an allowance for roundoff */
 
             if( fabs( mjd_start + 2400000.5 - tle_start) > tolerance)
-               fprintf( stderr, "WARNING: starting date for TLEs in '%s' "
-                        "mismatches that in tle_list.txt\n", tle_file_name);
+               fprintf( stderr, REVERSE_VIDEO "WARNING: starting date for TLEs in '%s' "
+                        "mismatches that in tle_list.txt\n" NORMAL_VIDEO, tle_file_name);
             if( fabs( mjd_end + 2400000.5 - tle_start - tle_range) > tolerance)
-               fprintf( stderr, "WARNING: ending date for TLES in '%s' "
-                        "mismatches that in tle_list.txt\n", tle_file_name);
+               fprintf( stderr, REVERSE_VIDEO "WARNING: ending date for TLES in '%s' "
+                        "mismatches that in tle_list.txt\n" NORMAL_VIDEO, tle_file_name);
             }
          tle_range = tle_step;
          if( check_updates && mjd_end < curr_mjd + lookahead_warning_days)
@@ -987,14 +1000,15 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             char time_buff[40];
 
             full_ctime( time_buff, mjd_end + 2400000.5, FULL_CTIME_YMD);
-            printf( "WARNING: TLEs in '%s' run out on %s (%.2f days)\n",
-                           tle_file_name, time_buff, mjd_end - curr_mjd);
+            fprintf( stderr, REVERSE_VIDEO "WARNING: TLEs in '%s' run out on %s (%.2f days)\n"
+                           NORMAL_VIDEO, tle_file_name, time_buff, mjd_end - curr_mjd);
             }
          if( !got_obs_in_range( objects, n_objects, mjd_start + 2400000.5,
                                             mjd_end + 2400000.5))
             {
             if( verbose)
-               printf( "'%s' contains no TLEs for our time range\n", tle_file_name);
+               fprintf( stderr, REVERSE_VIDEO "'%s' contains no TLEs for our time range\n"
+                               NORMAL_VIDEO, tle_file_name);
             fclose( tle_file);
             return( 0);
             }
@@ -1049,8 +1063,9 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                 (double)( clock( ) - time_started) / (double)CLOCKS_PER_SEC);
    if( n_tles_found < n_tles_expected_in_file)
       {
-      printf( "**** WARNING : %d TLEs were read from '%s'.  This is unexpected.\n",
-                  n_tles_found, tle_file_name);
+      fprintf( stderr, REVERSE_VIDEO
+                  "**** WARNING : %d TLEs were read from '%s'.  This is unexpected.\n"
+                  NORMAL_VIDEO, n_tles_found, tle_file_name);
 #ifdef ON_LINE_VERSION
       printf( "Please e-mail the author (pluto at projectpluto dot com) about this.\n");
 #endif
@@ -1109,7 +1124,7 @@ int main( const int argc, const char **argv)
 
    if( argc == 1)
       {
-      printf( "No input file of astrometry specified on command line\n\n");
+      fprintf( stderr, "No input file of astrometry specified on command line\n\n");
       error_exit( -2);
       }
 
@@ -1168,7 +1183,7 @@ int main( const int argc, const char **argv)
                speed_cutoff = atof( param);
                break;
             default:
-               printf( "Unrecognized command-line option '%s'\n", argv[i]);
+               fprintf( stderr, "Unrecognized command-line option '%s'\n", argv[i]);
                error_exit( -3);
                break;
             }
