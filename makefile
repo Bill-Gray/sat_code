@@ -17,7 +17,11 @@
 # None of these: compile using default g++ on Linux,  for Linux
 #
 
-CC=g++
+# As CC is an implicit variable, a simple CC?=g++ doesn't work.
+# We have to use this trick from https://stackoverflow.com/a/42958970
+ifeq ($(origin CC),default)
+	CC=g++
+endif
 EXE=
 RM=rm -f
 
@@ -51,10 +55,11 @@ endif
 # (with root privileges) you can install them to /usr/local/include
 # and /usr/local/lib for all to enjoy.
 
+PREFIX?=~
 ifdef GLOBAL
 	INSTALL_DIR=/usr/local
 else
-	INSTALL_DIR=~
+	INSTALL_DIR=$(PREFIX)
 endif
 
 INCL=$(INSTALL_DIR)/include
@@ -64,7 +69,7 @@ all: dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE) get_high$(EXE) \
 	out_comp$(EXE) sat_cgi$(EXE) sat_eph$(EXE) sat_id$(EXE) sat_id2$(EXE) summarize$(EXE) \
 	test_out$(EXE) test_sat$(EXE) test2$(EXE) tle2mpc$(EXE)
 
-CFLAGS=-Wextra -Wall -O3 -pedantic
+CFLAGS+=-Wextra -Wall -O3 -pedantic
 
 ifdef DEBUG
 	CFLAGS += -g
