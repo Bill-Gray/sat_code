@@ -785,6 +785,7 @@ of the observations.  The function is called for each TLE file.
 */
 
 int norad_id = 0;
+const char *intl_desig = NULL;
 
 double tle_start = 0., tle_range = 1e+9;
 
@@ -841,7 +842,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          }
       if( is_a_tle && (tle.ephemeris_type == 'H'
                  || tle.xno < 2. * PI * max_revs_per_day / mins_per_day)
-                 && (!norad_id || norad_id == tle.norad_number))
+                 && (!norad_id || norad_id == tle.norad_number)
+                 && (!intl_desig || !strcmp( tle.intl_desig, intl_desig)))
          {                           /* hey! we got a TLE! */
          double sat_params[N_SAT_PARAMS];
          size_t idx;
@@ -1148,6 +1150,9 @@ int main( const int argc, const char **argv)
                break;
             case 'c':
                check_all_tles = true;
+               break;
+            case 'i':
+               intl_desig = param;
                break;
             case 'l':
                lookahead_warning_days = atof( param);
