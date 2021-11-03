@@ -62,6 +62,7 @@ should be used,  and the others are suppressed.       */
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <assert.h>
 #if defined( _WIN32) || defined( __WATCOMC__)
@@ -324,6 +325,8 @@ static bool offset_matches_obs( const offset_t *offset, const OBSERVATION *obs)
 a pass to find out how many observations there are,  allocates space
 for them,  then reads them again to actually load the observations. */
 
+static const char *_target_desig;
+
 static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          const double t_low, const double t_high)
 {
@@ -338,7 +341,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
    memset( &obs, 0, sizeof( OBSERVATION));
    while( fgets_with_ades_xlation( buff, sizeof( buff), ades_context, ifile))
       if( !get_mpc_data( &obs, buff) && obs.jd > t_low
-                                     && obs.jd < t_high)
+                   && obs.jd < t_high
+                   && (!_target_desig || strstr( buff, _target_desig)))
          {
          char station_data[100];
 
@@ -707,6 +711,52 @@ static bool got_obs_in_range( const object_t *objs, size_t n_objects,
    return( false);
 }
 
+static int _pack_intl_desig( char *desig_out, const char *desig)
+{
+   size_t i = 0;
+   int rval = 0;
+
+   while( desig[i] && isdigit( desig[i]))
+      i++;
+   memset( desig_out, ' ', 8);
+   desig_out[8] = '\0';
+   if( i == 5 && isupper( desig[5]))      /* already in YYYNNAaa form */
+      {
+      memcpy( desig_out, desig, 5);
+      desig += 5;
+      }
+   else if( i == 4 && desig[4] == '-' && isdigit( desig[5])
+                  && isdigit( desig[6]) && isdigit( desig[7]) && isupper( desig[8]))
+      {
+      desig_out[0] = desig[2];      /* desig is in YYYY-NNNAaa form */
+      desig_out[1] = desig[3];
+      desig_out[2] = desig[5];
+      desig_out[3] = desig[6];
+      desig_out[4] = desig[7];
+      desig += 8;
+      }
+   else                 /* not a recognized intl desig form */
+      rval = -1;
+   if( !rval)
+      {
+      desig_out[5] = *desig++;
+      if( isupper( *desig))
+         desig_out[6] = *desig++;
+      if( isupper( *desig))
+         desig_out[7] = *desig++;
+      }
+   return( rval);
+}
+
+static int _compare_intl_desigs( const char *desig1, const char *desig2)
+{
+   char odesig1[9], odesig2[9];
+
+   _pack_intl_desig( odesig1, desig1);
+   _pack_intl_desig( odesig2, desig2);
+   return( strcmp( odesig1, odesig2));
+}
+
 /* Code to look through 'sat_xref.txt',  if available,  and assign NORAD
 and international designations to TLEs with only default designations.
 See 'sat_xref.txt' and 'eph2tle.cpp' in the Find_Orb repository. */
@@ -843,7 +893,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       if( is_a_tle && (tle.ephemeris_type == 'H'
                  || tle.xno < 2. * PI * max_revs_per_day / mins_per_day)
                  && (!norad_id || norad_id == tle.norad_number)
-                 && (!intl_desig || !strcmp( tle.intl_desig, intl_desig)))
+                 && (!intl_desig || !_compare_intl_desigs( tle.intl_desig, intl_desig)))
          {                           /* hey! we got a TLE! */
          double sat_params[N_SAT_PARAMS];
          size_t idx;
@@ -1104,6 +1154,7 @@ int main( const int argc, const char **argv)
    char tle_file_name[256];
    const char *tname = "tle_list.txt";
    const char *output_astrometry_filename = NULL;
+   bool output_only_matches = false;
    FILE *ifile;
    OBSERVATION *obs;
    object_t *objects;
@@ -1151,6 +1202,9 @@ int main( const int argc, const char **argv)
             case 'c':
                check_all_tles = true;
                break;
+            case 'd':
+               _target_desig = param;
+               break;
             case 'i':
                intl_desig = param;
                break;
@@ -1170,7 +1224,9 @@ int main( const int argc, const char **argv)
                norad_id = atoi( param);
                break;
             case 'o':
+            case 'O':
                output_astrometry_filename = param;
+               output_only_matches = (argv[i][1] == 'o');
                break;
             case 't':
                tname = param;
@@ -1181,9 +1237,6 @@ int main( const int argc, const char **argv)
             case 'v':
                verbose = atoi( param) + 1;
                break;
-//          case 'd':
-//             debug_level = atoi( param);
-//             break;
             case 'z':
                speed_cutoff = atof( param);
                break;
@@ -1280,7 +1333,7 @@ int main( const int argc, const char **argv)
          char buff[30];
 
          printf( "\n%.12s ", objects[i].obs->text);
-         for( size_t j = 0; objects[i].matches[j].norad_number && j < MAX_MATCHES; j++)
+         for( size_t j = 0; objects[i].matches[j].intl_desig[0] && j < MAX_MATCHES; j++)
             printf( " %05d %s", objects[i].matches[j].norad_number,
                          unpack_intl( objects[i].matches[j].intl_desig, buff));
          if( objects[i].matches[0].norad_number)
@@ -1309,18 +1362,26 @@ int main( const int argc, const char **argv)
             if( strlen( buff) > 80 && buff[80] < ' ')
                {
                char tbuff[30];
+               bool was_matched = false;
 
                for( i = 0; (size_t)i < n_objects; i++)
-                  if( !memcmp( objects[i].obs->text, buff, 12) &&
-                               objects[i].matches[0].norad_number)
+                  if( !memcmp( objects[i].obs->text, buff, 12))
                      {
-                     fprintf( ofile, "COM %05dU = %s\n",
-                         objects[i].matches[0].norad_number,
-                         unpack_intl( objects[i].matches[0].intl_desig, tbuff));
-                     objects[i].matches[0].norad_number = 0;
+                     if( objects[i].matches[0].norad_number)
+                        was_matched = true;
+                     if( objects[i].matches[0].norad_number > 0)
+                        {
+                        fprintf( ofile, "\nCOM %05dU = %s\n",
+                            objects[i].matches[0].norad_number,
+                            unpack_intl( objects[i].matches[0].intl_desig, tbuff));
+                        objects[i].matches[0].norad_number = -1;
+                        }
                      }
+               if( was_matched && output_only_matches)
+                  fputs( buff, ofile);
                }
-            fputs( buff, ofile);
+            if( !output_only_matches)
+               fputs( buff, ofile);
             }
          fclose( ofile);
          }
