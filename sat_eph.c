@@ -5,12 +5,18 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 #include "watdefs.h"
 #include "afuncs.h"
 #include "date.h"
 #include "norad.h"
 #include "mpc_func.h"
 #include "observe.h"
+
+/* Code to generate topocentric ephemerides from TLE data,  mostly focussed
+on the TLEs provided in https://www.github.com/Bill-Gray/tles. The program
+can be compiled for standalone use or for use with the on-line artsat
+ephemeris service at https://www.projectpluto.com/sat_eph.htm (q.v.). */
 
 #define PI 3.1415926535897932384626433832795028841971693993751058209749445923
 
@@ -339,6 +345,7 @@ int dummy_main( const int argc, const char **argv)
 {
    int i;
    ephem_t e;
+   bool round_to_nearest_step = false;
 
    if( argc < 3)
       {
@@ -360,10 +367,18 @@ int dummy_main( const int argc, const char **argv)
                tle_list_filename = arg;
                break;
             case 't':
-               e.jd_start = get_time_from_string( 0., arg, FULL_CTIME_YMD, NULL);
+               {
+               const double jan_1970 = 2440587.5;
+               const double curr_jd = jan_1970 + (double)time( NULL) / (double)seconds_per_day;
+
+               e.jd_start = get_time_from_string( curr_jd, arg, FULL_CTIME_YMD, NULL);
                break;
+               }
             case 'n':
                e.n_steps = atoi( arg);
+               break;
+            case 'r':
+               round_to_nearest_step = true;
                break;
             case 's':
                if( arg && *arg)
@@ -397,6 +412,8 @@ int dummy_main( const int argc, const char **argv)
                return( 0);
             }
          }
+   if( round_to_nearest_step && e.step_size)
+      e.jd_start = floor( (e.jd_start - 0.5) / e.step_size) * e.step_size + 0.5;
    e.jd_end   = e.jd_start + (double)e.n_steps * e.step_size;
    if( verbose)
       printf( "arguments parsed;  JDs %f to %f\n", e.jd_start, e.jd_end);
@@ -509,6 +526,8 @@ int main( const int unused_argc, const char **unused_argv)
          }
       if( !strcmp( field, "obs_code") && strlen( buff) < sizeof( obs_code))
          strcpy( obs_code, buff);
+      if( !strcmp( field, "round_step"))
+         argv[argc++] = "-r";
       }
    fprintf( lock_file, "Fields read\n");
    argv[0] = "sat_eph";
