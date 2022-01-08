@@ -279,7 +279,16 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
       e->alt = c.alt;
       e->rho_cos_phi = c.rho_cos_phi;
       e->rho_sin_phi = c.rho_sin_phi;
+      if( c.lon > PI)
+         c.lon -= PI + PI;
+      if( c.rho_sin_phi || c.rho_cos_phi)
+         printf( "Latitude %c %f, Longitude %c %f\nAltitude %.1f meters (above WGS84 ellipsoid)\n",
+                  (c.lat > 0. ? 'N' : 'S'), fabs( c.lat) * 180. / PI,
+                  (c.lon > 0. ? 'E' : 'W'), fabs( c.lon) * 180. / PI,
+                  c.alt);
       }
+   else
+      fprintf( stderr, "WARNING: Could not parse location '%s'\n", mpc_code);
    return( rval);
 }
 
