@@ -288,6 +288,7 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
                exit( 0);
                }
             rval = 0;
+            printf( "%s\n", c.name);
             }
       fclose( ifile);
       }
@@ -306,16 +307,16 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
                   (c.lon > 0. ? 'E' : 'W'), fabs( c.lon) * 180. / PI,
                   c.alt);
       }
-   else
-      fprintf( stderr, "WARNING: Could not parse location '%s'\n", mpc_code);
    return( rval);
 }
 
 #ifdef ON_LINE_VERSION
    #define OBSCODES_DOT_HTML_FILENAME  "/home/projectp/public_html/cgi-bin/fo/ObsCodes.htm"
+   #define ROVERS_DOT_TXT_FILENAME     "/home/projectp/public_html/cgi-bin/fo/rovers.txt"
    #define PATH_TO_TLES                "/home/projectp/public_html/tles"
 #else
    #define OBSCODES_DOT_HTML_FILENAME  "/home/phred/.find_orb/ObsCodes.htm"
+   #define ROVERS_DOT_TXT_FILENAME     "/home/phred/.find_orb/rovers.txt"
    #define PATH_TO_TLES                "/home/phred/tles"
 #endif
 
@@ -374,6 +375,7 @@ int dummy_main( const int argc, const char **argv)
    int i;
    ephem_t e;
    bool round_to_nearest_step = false;
+   const char *mpc_code = "500";
 
    if( argc < 3)
       {
@@ -389,7 +391,7 @@ int dummy_main( const int argc, const char **argv)
          switch( argv[i][1])
             {
             case 'c':
-               set_location( &e, arg, OBSCODES_DOT_HTML_FILENAME);
+               mpc_code = arg;
                break;
             case 'f':
                tle_list_filename = arg;
@@ -440,6 +442,9 @@ int dummy_main( const int argc, const char **argv)
                return( 0);
             }
          }
+   if( set_location( &e, mpc_code, OBSCODES_DOT_HTML_FILENAME))
+      if( set_location( &e, mpc_code, ROVERS_DOT_TXT_FILENAME))
+         fprintf( stderr, "WARNING: Could not parse location '%s'\n", mpc_code);
    if( round_to_nearest_step && e.step_size)
       e.jd_start = floor( (e.jd_start - 0.5) / e.step_size) * e.step_size + 0.5;
    e.jd_end   = e.jd_start + (double)e.n_steps * e.step_size;
