@@ -69,6 +69,7 @@ int main( const int argc, const char **argv)
          switch( argv[i][1])
             {
             case 'i':
+               assert( strlen( arg) < 9);
                sprintf( intl_desig, "%-9s", arg);
                break;
             case 'n':
