@@ -8,6 +8,7 @@
 #include <time.h>
 #include "watdefs.h"
 #include "afuncs.h"
+#include "comets.h"
 #include "date.h"
 #include "norad.h"
 #include "mpc_func.h"
@@ -139,7 +140,11 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
             show_it = (jd_tle < e->jd_end && jd_tle + tle_range > e->jd_start);
             }
          else if( tptr)
+            {
             abs_mag = atof( tptr + 2);
+            if( verbose)
+               printf( "H = %.3f\n", abs_mag);
+            }
          }
       else if( show_it && parse_elements( line1, line2, &tle) >= 0
                      && desig_match( &tle, e->desig))
@@ -203,9 +208,10 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                   printf( "\n");
                else
                   {
+                  const double phase_ang = (180. - elong) * (PI / 180.);
                   double mag = abs_mag + 5. * log10( dist / AU_IN_KM)
-                              - 2.5 * log10( (1. - cos( elong * PI / 180.)) / 2.);
-
+                           + phase_angle_correction_to_magnitude(
+                                    phase_ang, 0.15);
                   printf( "%8.1f\n", mag);
                   }
                n_lines_generated++;
