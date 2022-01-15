@@ -496,7 +496,7 @@ int main( const int unused_argc, const char **unused_argv)
    const size_t max_buff_size = 40000;       /* room for 500 obs */
    char *buff = (char *)malloc( max_buff_size);
    char field[30], time_text[80];
-   char num_steps[30], step_size[30], obs_code[10];
+   char num_steps[30], step_size[30], obs_code[40];
    FILE *lock_file = fopen( "lock.txt", "w");
    int cgi_status, i, argc = 9;
 #ifndef _WIN32
