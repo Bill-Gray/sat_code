@@ -58,7 +58,7 @@ int main( const int argc, const char **argv)
                sprintf( buff, "%04d-%02d-%02d",
                         day / 10000, (day / 100) % 100, day % 100);
                printf( "Date : %s\n", buff);
-               sprintf( command, "find_orb -oSpektrRG -v%sT", buff);
+               sprintf( command, "find_orb \"-oSpektr-RG = 2019-040A = NORAD 44432\" -v%sT", buff);
                }
                break;
             case 3:
