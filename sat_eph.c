@@ -101,10 +101,46 @@ static inline bool desig_match( const tle_t *tle, const char *desig)
    return( rval);
 }
 
+/* 'obs_pos' = observer position relative to the geocenter, km
+   'topo_posn' = artsat position relative to the observer, km
+   'sat_vel' = artsat vel, km/minute (usual,  though somewhat oddball,  SxPx units)
+   '*motion_pa' = returned posn angle of motion,  degrees
+   apparent total angular motion is returned               */
+
+static double compute_angular_rates( const double *obs_pos, const double *topo_posn,
+              const double *sat_vel, double *motion_pa)
+{
+   double vel[3];         /* velocity of sat relative to observer */
+   double x_vect[3];    /* unit vector in equatorial plane perpendicular to topo_posn */
+   double y_vect[3];    /* unit vector perpendicular to topo_posn & x_vect */
+   double xmotion, ymotion, total_motion, dist;
+   const double omega_E = 1.00273790934;
+                   /* Earth rotations per sidereal day (non-constant) */
+   const double omega = omega_E * 2. * PI / minutes_per_day;
+                   /* Earth rotational rate in radians/minute */
+
+   vel[0] = sat_vel[0] - omega * obs_pos[1];
+   vel[1] = sat_vel[1] - omega * obs_pos[0];
+   vel[2] = sat_vel[2];
+   x_vect[0] = topo_posn[1];     /* approximate as rotating around the z axis */
+   x_vect[1] = -topo_posn[0];    /* (close enough to being true) */
+   x_vect[2] = 0.;
+   vector_cross_product( y_vect, topo_posn, x_vect);
+   normalize_vect3( x_vect);
+   normalize_vect3( y_vect);
+   dist = vector3_length( topo_posn);
+   xmotion = dot_product( vel, x_vect) / dist;      /* all in radians/minute */
+   ymotion = dot_product( vel, y_vect) / dist;
+   total_motion = hypot( xmotion, ymotion);
+   *motion_pa = PI + atan2( xmotion, ymotion);
+   *motion_pa *= 180. / PI;
+   return( total_motion * (180. / PI) * 60.);      /* cvt to arcmin/min = arcsec/sec */
+}
+
 static const char *header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)";
+           "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)  \"/sec   PA";
 static const char *geo_header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)";
+           "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename)
@@ -169,6 +205,8 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                double pos[3], vel[3], obs_pos[3], ra, dec, dist;
                const double t_since = (jd - tle.epoch) * minutes_per_day;
                double solar_xyzr[4], topo_posn[3], elong;
+               double motion_rate, motion_pa;
+               const char *format_string;
 
                if( !i)
                   {
@@ -177,7 +215,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                               (atoi( tle.intl_desig) > 57000) ? "19" : "20",
                               tle.intl_desig, tle.intl_desig + 2);
                   printf( "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
-                  printf( abs_mag ? "   Mag\n" : "\n");
+                  printf( abs_mag ? "     Mag\n" : "\n");
                   }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
                                  | FULL_CTIME_LEADING_ZEROES);
@@ -194,6 +232,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                ra_buff[10] = dec_buff[9] = '\0';
                for( j = 0; j < 3; j++)
                   topo_posn[j] = pos[j] - obs_pos[j];
+               motion_rate = compute_angular_rates( obs_pos, topo_posn, vel, &motion_pa);
                lunar_solar_position( jd, NULL, solar_xyzr);
                ecliptic_to_equatorial( solar_xyzr);
                if( !is_geocentric)
@@ -204,6 +243,13 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                elong = angle_between( topo_posn, solar_xyzr);
                printf( "%s  %s  %s%s %6.1f %8.0f", buff, ra_buff, dec_buff,
                      alt_buff, elong, dist);
+               if( motion_rate < 999.)
+                  format_string = "  %6.2f %6.1f";
+               else if( motion_rate < 9999.)
+                  format_string = "  %6.1f %6.1f";
+               else
+                  format_string = "  %6.0f %6.1f";
+               printf( format_string, motion_rate, motion_pa);
                if( !abs_mag)
                   printf( "\n");
                else
