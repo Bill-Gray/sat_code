@@ -119,7 +119,7 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
    const double omega = omega_E * 2. * PI / minutes_per_day;
                    /* Earth rotational rate in radians/minute */
 
-   vel[0] = sat_vel[0] - omega * obs_pos[1];
+   vel[0] = sat_vel[0] + omega * obs_pos[1];
    vel[1] = sat_vel[1] - omega * obs_pos[0];
    vel[2] = sat_vel[2];
    x_vect[0] = topo_posn[1];     /* approximate as rotating around the z axis */
