@@ -137,10 +137,8 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
    return( total_motion * (180. / PI) * 60.);      /* cvt to arcmin/min = arcsec/sec */
 }
 
-static const char *header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)  \"/sec   PA";
-static const char *geo_header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
+static char _header[200];
+
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename)
@@ -150,6 +148,10 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    int show_it = 1, n_lines_generated = 0;
    double jd_tle = 0., tle_range = 1e+10, abs_mag = 0.;
    const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
+   static const char *header_text =
+           "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)  \"/sec   PA";
+   static const char *geo_header_text =
+           "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
 
    if( verbose)
       printf( "Should examine '%s'\n", filename);
@@ -214,8 +216,10 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                               tle.norad_number,
                               (atoi( tle.intl_desig) > 57000) ? "19" : "20",
                               tle.intl_desig, tle.intl_desig + 2);
-                  printf( "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
-                  printf( abs_mag ? "     Mag\n" : "\n");
+                  snprintf( _header, sizeof( _header),
+                          "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
+                  strcat( _header, abs_mag ? "     Mag\n" : "\n");
+                  printf( "%s", _header);
                   }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
                                  | FULL_CTIME_LEADING_ZEROES);
@@ -277,7 +281,6 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
    FILE *ifile;
    char buff[100];
    int is_in_range = 0, id_matches = 1, ephem_lines_generated = 0;
-   const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
 
    snprintf( buff, sizeof( buff), "%s/%s", path_to_tles, tle_list_filename);
    ifile = fopen( buff, "rb");
@@ -309,7 +312,7 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
       }
    fclose( ifile);
    if( ephem_lines_generated)
-      printf( "%s\n", (is_geocentric ? geo_header_text : header_text));
+      printf( "%s", _header);
    return( ephem_lines_generated);
 }
 
