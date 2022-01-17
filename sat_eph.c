@@ -138,7 +138,7 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
 }
 
 static char _header[200];
-
+static int motion_units = 1;     /* default to '/minute = degrees/hr = "/sec */
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename)
@@ -219,6 +219,13 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                   snprintf( _header, sizeof( _header),
                           "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
                   strcat( _header, abs_mag ? "     Mag\n" : "\n");
+                  if( motion_units == 60)
+                     {
+                     char *tptr = strstr( _header, "/sec ");
+
+                     assert( tptr);
+                     memcpy( tptr, "/min", 4);
+                     }
                   printf( "%s", _header);
                   }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
@@ -247,6 +254,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                elong = angle_between( topo_posn, solar_xyzr);
                printf( "%s  %s  %s%s %6.1f %8.0f", buff, ra_buff, dec_buff,
                      alt_buff, elong, dist);
+               motion_rate *= (double)motion_units;
                if( motion_rate < 999.)
                   format_string = "  %6.2f %6.1f";
                else if( motion_rate < 9999.)
@@ -484,6 +492,9 @@ int dummy_main( const int argc, const char **argv)
                         break;
                      }
                   }
+               break;
+            case 'u':
+               motion_units = 60;
                break;
             case 'o':
                /* Will handle below */
