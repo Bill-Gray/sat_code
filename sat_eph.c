@@ -162,7 +162,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    double jd_tle = 0., tle_range = 1e+10, abs_mag = 0.;
    const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
    static const char *header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Alt   Elong   Dist(km)  \"/sec   PA";
+           "Date (UTC)  Time       R.A. (J2000)  decl   Azim   Alt  Elong   Dist(km)  \"/sec   PA";
    static const char *geo_header_text =
            "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
 
@@ -216,7 +216,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
          for( i = 0; i < (size_t)e->n_steps; i++, jd += e->step_size)
             if( jd >= jd_tle && jd < jd_tle + tle_range)
                {
-               char buff[90], dec_buff[20], ra_buff[20], alt_buff[7];
+               char buff[90], dec_buff[20], ra_buff[20], alt_buff[17];
                double pos[3], vel[3], obs_pos[3], ra, dec, dist;
                const double t_since = (jd - tle.epoch) * minutes_per_day;
                double solar_xyzr[4], topo_posn[3], elong;
@@ -260,8 +260,17 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                lunar_solar_position( jd, NULL, solar_xyzr);
                ecliptic_to_equatorial( solar_xyzr);
                if( !is_geocentric)
-                  snprintf( alt_buff, sizeof( alt_buff), " %+05.1f",
-                              90. - angle_between( topo_posn, obs_pos));
+                  {
+                  double x_vect[3], y_vect[3], z_vect[3], alt, az;
+
+                  make_orthogonal_basis( obs_pos, x_vect, y_vect, z_vect);
+                  az = PI + atan2( dot_product( x_vect, topo_posn),
+                                   dot_product( y_vect, topo_posn));
+                  az *= 180. / PI;
+                  alt = 90. - angle_between( topo_posn, obs_pos);
+                  snprintf( alt_buff, sizeof( alt_buff), " %5.1f %+05.1f",
+                              az,  alt);
+                  }
                else
                   *alt_buff = '\0';
                elong = angle_between( topo_posn, solar_xyzr);
