@@ -79,7 +79,6 @@ static double angle_between( const double *a, const double *b)
    return( rval * 180. / PI);
 }
 
-
 static inline bool desig_match( const tle_t *tle, const char *desig)
 {
    size_t i = 0;
@@ -255,7 +254,11 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                printf( "%s  %s  %s%s %6.1f %8.0f", buff, ra_buff, dec_buff,
                      alt_buff, elong, dist);
                motion_rate *= (double)motion_units;
-               if( motion_rate < 999.)
+               if( motion_rate < 9.999)
+                  format_string = "  %6.4f %6.1f";
+               else if( motion_rate < 99.99)
+                  format_string = "  %6.3f %6.1f";
+               else if( motion_rate < 999.9)
                   format_string = "  %6.2f %6.1f";
                else if( motion_rate < 9999.)
                   format_string = "  %6.1f %6.1f";
@@ -610,6 +613,8 @@ int main( const int unused_argc, const char **unused_argv)
          argv[argc++] = "-o";
          argv[argc++] = obj_name;
          }
+      else if( !strcmp( field, "motion60"))
+         motion_units = 60;
       if( !strcmp( field, "num_steps") && strlen( buff) < sizeof( num_steps))
          strcpy( num_steps, buff);
       if( !strcmp( field, "step_size") && strlen( buff) < sizeof( step_size))
