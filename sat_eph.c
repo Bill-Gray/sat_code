@@ -100,6 +100,25 @@ static inline bool desig_match( const tle_t *tle, const char *desig)
    return( rval);
 }
 
+/* Generates unit vector in the direction of ivect and stores it in z_vect;
+a unit vector perpendicular to that in the xy plane,  stored in x_vect;
+and a unit vector perpendicular to both,  stored in y_vect.   */
+
+static double make_orthogonal_basis( const double *ivect,
+              double *x_vect, double *y_vect, double *z_vect)
+{
+   double rval, len;
+
+   memcpy( z_vect, ivect, 3 * sizeof( double));
+   rval = normalize_vect3( z_vect);
+   len = hypot( z_vect[0], z_vect[1]);
+   x_vect[0] = z_vect[1] / len;
+   x_vect[1] = -z_vect[0] / len;
+   x_vect[2] = 0.;
+   vector_cross_product( y_vect, z_vect, x_vect);
+   return( rval);
+}
+
 /* 'obs_pos' = observer position relative to the geocenter, km
    'topo_posn' = artsat position relative to the observer, km
    'sat_vel' = artsat vel, km/minute (usual,  though somewhat oddball,  SxPx units)
@@ -112,6 +131,7 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
    double vel[3];         /* velocity of sat relative to observer */
    double x_vect[3];    /* unit vector in equatorial plane perpendicular to topo_posn */
    double y_vect[3];    /* unit vector perpendicular to topo_posn & x_vect */
+   double z_vect[3];    /* unit vector version of topo_posn */
    double xmotion, ymotion, total_motion, dist;
    const double omega_E = 1.00273790934;
                    /* Earth rotations per sidereal day (non-constant) */
@@ -121,13 +141,7 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
    vel[0] = sat_vel[0] + omega * obs_pos[1];
    vel[1] = sat_vel[1] - omega * obs_pos[0];
    vel[2] = sat_vel[2];
-   x_vect[0] = topo_posn[1];     /* approximate as rotating around the z axis */
-   x_vect[1] = -topo_posn[0];    /* (close enough to being true) */
-   x_vect[2] = 0.;
-   vector_cross_product( y_vect, topo_posn, x_vect);
-   normalize_vect3( x_vect);
-   normalize_vect3( y_vect);
-   dist = vector3_length( topo_posn);
+   dist = make_orthogonal_basis( topo_posn, x_vect, y_vect, z_vect);
    xmotion = dot_product( vel, x_vect) / dist;      /* all in radians/minute */
    ymotion = dot_product( vel, y_vect) / dist;
    total_motion = hypot( xmotion, ymotion);
