@@ -119,9 +119,14 @@ static inline int mutant_dehex( const char ichar)
    return( rval);
 }
 
-/* The "standard" SDP4 model fails badly for very high-flying satellites.
-As a non-standard extension,  I'm simply storing state vectors for them,
-using the following somewhat odd scheme :
+/* The "standard" SDP4 model fails badly for very high-flying satellites
+(mostly,  but not always,  those with orbital periods of greater than
+about a week).  Highly eccentric orbits are more likely to fail than
+near-circular ones.  And of course,  hyperbolic orbits never work with
+SGP4/SDP4.
+
+   As a non-standard extension,  I'm simply storing state vectors for
+such orbits,  using the following somewhat odd scheme :
 
 1 40391U 15007B   15091.99922241 sxxxxxxxx syyyyyyyy szzzzzzzzH  9997
 2 49391 [valid range, accuracy]  saaaaaaaa sbbbbbbbb scccccccc    0 8
@@ -132,7 +137,9 @@ xyz position and vx, vy, vz velocity are stored as 8-digit signed
 base-36 integers,  hence a range of +/- 36^8 = about +/- 2.82x10^12.
 
   x, y, z are in meters,  and hence cover a range +/- 18.9 AU.
-vx, vy, vz are in 10^-4 m/s,  range +/- 94% c.  */
+vx, vy, vz are in 10^-4 m/s,  range +/- 94% c.  The state vectors
+are in the geocentric ecliptic plane of date.  See 'sdp4.cpp' for
+a discussion of how they're actually used.  */
 
 static double get_high_value( const char *iptr)
 {
