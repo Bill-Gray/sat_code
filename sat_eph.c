@@ -213,7 +213,8 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
             printf( "Got TLEs for %f :\n", jd);
             printf( "%s\n%s\n%s\n", line0, line1, line2);
             }
-         for( i = 0; i < (size_t)e->n_steps; i++, jd += e->step_size)
+         for( i = 0; i < (size_t)e->n_steps; i++,
+                                         jd = e->jd_start + (double)i * e->step_size)
             if( jd >= jd_tle && jd < jd_tle + tle_range)
                {
                char buff[90], dec_buff[20], ra_buff[20], alt_buff[17];
