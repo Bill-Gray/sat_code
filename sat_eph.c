@@ -154,11 +154,11 @@ static char _header[200];
 static int motion_units = 1;     /* default to '/minute = degrees/hr = "/sec */
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
-                                  const char *filename)
+                                  const char *filename, int start_line)
 {
    FILE *ifile;
    char line0[100], line1[100], line2[100];
-   int show_it = 1, n_lines_generated = 0;
+   int show_it = 1;
    double jd_tle = 0., tle_range = 1e+10, abs_mag = 0.;
    const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
    static const char *header_text =
@@ -167,7 +167,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
            "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
 
    if( verbose)
-      printf( "Should examine '%s'\n", filename);
+      printf( "Should examine '%s'; start line %d\n", filename, start_line);
    snprintf( line0, sizeof( line0), "%s/%s", path_to_tles, filename);
    ifile = fopen( line0, "rb");
    if( !ifile)
@@ -215,7 +215,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
             }
          for( i = 0; i < (size_t)e->n_steps; i++,
                                          jd = e->jd_start + (double)i * e->step_size)
-            if( jd >= jd_tle && jd < jd_tle + tle_range)
+            if( (int)i >= start_line && jd >= jd_tle && jd < jd_tle + tle_range)
                {
                char buff[90], dec_buff[20], ra_buff[20], alt_buff[17];
                double pos[3], vel[3], obs_pos[3], ra, dec, dist;
@@ -299,14 +299,14 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                     phase_ang, 0.15);
                   printf( "%8.1f\n", mag);
                   }
-               n_lines_generated++;
+               start_line = i + 1;
                }
          }
       strcpy( line0, line1);
       strcpy( line1, line2);
       }
    fclose( ifile);
-   return( n_lines_generated);
+   return( start_line);
 }
 
 static const char *tle_list_filename = "tle_list.txt";
@@ -315,7 +315,7 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 {
    FILE *ifile;
    char buff[100];
-   int is_in_range = 0, id_matches = 1, ephem_lines_generated = 0;
+   int is_in_range = 0, id_matches = 1, start_line = 0;
 
    snprintf( buff, sizeof( buff), "%s/%s", path_to_tles, tle_list_filename);
    ifile = fopen( buff, "rb");
@@ -324,7 +324,7 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
       fprintf( stderr, "'%s' not opened\n", buff);
       exit( 0);
       }
-   while( ephem_lines_generated != e->n_steps &&
+   while( start_line != e->n_steps &&
                           fgets_trimmed( buff, sizeof( buff), ifile))
       {
       if( !memcmp( buff, "# Range:", 8))
@@ -340,15 +340,15 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
       if( !memcmp( buff, "# Include ", 10))
          {
          if( is_in_range && id_matches)
-            ephem_lines_generated += show_ephems_from( path_to_tles, e, buff + 10);
+            start_line = show_ephems_from( path_to_tles, e, buff + 10, start_line);
          is_in_range = 0;
          id_matches = 1;
          }
       }
    fclose( ifile);
-   if( ephem_lines_generated)
+   if( start_line)
       printf( "%s", _header);
-   return( ephem_lines_generated);
+   return( start_line);
 }
 
 static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_file_name)
