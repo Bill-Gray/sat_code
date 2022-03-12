@@ -466,6 +466,7 @@ int dummy_main( const int argc, const char **argv)
    ephem_t e;
    bool round_to_nearest_step = false;
    const char *mpc_code = "500";
+   const char *override_tle_filename = NULL;
 
    if( argc < 3)
       {
@@ -485,6 +486,9 @@ int dummy_main( const int argc, const char **argv)
                break;
             case 'f':
                tle_list_filename = arg;
+               break;
+            case 'F':
+               override_tle_filename = arg;
                break;
             case 't':
                {
@@ -551,7 +555,10 @@ int dummy_main( const int argc, const char **argv)
          strncpy( desig, get_arg( argv + i), 29);
          fix_desig( desig);
          e.desig = desig;
-         generate_artsat_ephems( PATH_TO_TLES, &e);
+         if( override_tle_filename)
+            show_ephems_from( PATH_TO_TLES, &e, override_tle_filename, 0);
+         else
+            generate_artsat_ephems( PATH_TO_TLES, &e);
          }
    return( 0);
 }
