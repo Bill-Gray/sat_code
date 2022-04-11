@@ -299,7 +299,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                     phase_ang, 0.15);
                   printf( "%8.1f\n", mag);
                   }
-               start_line = i + 1;
+               start_line = (int)i + 1;
                }
          }
       strcpy( line0, line1);
