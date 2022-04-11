@@ -94,7 +94,7 @@ static void put_sci( char *obuff, double ival)
          *obuff++ = '-';
          ival = -ival;
          }
-      while( true)
+      while( 1)
          {
          if( ival > 1.)    /* avoid integer overflow */
             oval = 100000;
