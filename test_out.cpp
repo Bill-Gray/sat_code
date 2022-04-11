@@ -75,7 +75,7 @@ int main( const int argc, const char **argv)
    char line0[100], line1[100], line2[100];
    int i, verbose = 0;
    const char *norad = NULL, *intl = NULL;
-   bool legend_shown = false;
+   int legend_shown = 0;
 
    for( i = 2; i < argc; i++)
       if( argv[i][0] == '-')
@@ -126,7 +126,7 @@ int main( const int argc, const char **argv)
 
             if( verbose && !legend_shown)
                {
-               legend_shown = true;
+               legend_shown = 1;
                printf(
   "1 NoradU COSPAR   Epoch.epoch     dn/dt/2  d2n/dt2/6 BSTAR    T El# C\n"
   "2 NoradU Inclina RAAscNode Eccent  ArgPeri MeanAno  MeanMotion Rev# C\n");
