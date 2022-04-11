@@ -17,14 +17,14 @@ obs_test.exe: obs_test.obj wsatlib.lib
 obs_tes2.exe: obs_tes2.obj wsatlib.lib
    wcl386 -zq -k10000 obs_tes2.obj wsatlib.lib
 
-sat_id.exe: sat_id.obj wsatlib.lib
-   wcl386 -zq -k10000 sat_id.obj wsatlib.lib
+sat_id.exe: sat_id.obj sat_util.obj wsatlib.lib ../lib/wafuncs.lib
+   wcl386 -zq -k10000 sat_id.obj sat_util.obj wsatlib.lib ../lib/wafuncs.lib
 
 test_out.exe: test_out.obj wsatlib.lib
    wcl386 -zq -k10000 test_out.obj wsatlib.lib
 
 #CFLAGS=-W4 -Ox -j -zq -DRETAIN_PERTURBATION_VALUES_AT_EPOCH
-CFLAGS=-W4 -Ox -j -zq
+CFLAGS=-W4 -Ox -j -zq -i=..\include
 
 wsatlib.lib: sgp.obj sgp4.obj sgp8.obj sdp4.obj sdp8.obj deep.obj &
      basics.obj get_el.obj observe.obj common.obj tle_out.obj
@@ -33,6 +33,9 @@ wsatlib.lib: sgp.obj sgp4.obj sgp8.obj sdp4.obj sdp8.obj deep.obj &
    wlib -q wsatlib.lib  +common.obj +tle_out.obj
 
 .cpp.obj:
+   wcc386 $(CFLAGS) $<
+
+.c.obj:
    wcc386 $(CFLAGS) $<
 
 basics.obj:
@@ -50,6 +53,8 @@ obs_test.obj:
 obs_tes2.obj:
 
 sat_id.obj:
+
+sat_util.obj:
 
 tle_out.obj:
 
