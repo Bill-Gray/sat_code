@@ -1043,18 +1043,18 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                {
                fprintf( stderr, REVERSE_VIDEO "WARNING: starting date for TLEs in '%s' "
                         "mismatches that in tle_list.txt\n" NORMAL_VIDEO, tle_file_name);
-               fprintf( stderr, "TLE list start MJD %lf\n", tle_start - 2400000.5);
-               fprintf( stderr, "'Range:' line start MJD %lf\n", mjd_start);
-               fprintf( stderr, "diff = %lf\n",
+               fprintf( stderr, "TLE list start MJD %f\n", tle_start - 2400000.5);
+               fprintf( stderr, "'Range:' line start MJD %f\n", mjd_start);
+               fprintf( stderr, "diff = %f\n",
                         mjd_start + 2400000.5 - tle_start);
                }
             if( fabs( mjd_end + 2400000.5 - tle_start - tle_range) > tolerance)
                {
                fprintf( stderr, REVERSE_VIDEO "WARNING: ending date for TLES in '%s' "
                         "mismatches that in tle_list.txt\n" NORMAL_VIDEO, tle_file_name);
-               fprintf( stderr, "TLE list ends MJD %lf\n", tle_start + tle_range - 2400000.5);
-               fprintf( stderr, "'Range:' line ends MJD %lf\n", mjd_end);
-               fprintf( stderr, "diff = %lf\n",
+               fprintf( stderr, "TLE list ends MJD %f\n", tle_start + tle_range - 2400000.5);
+               fprintf( stderr, "'Range:' line ends MJD %f\n", mjd_end);
+               fprintf( stderr, "diff = %f\n",
                         mjd_end + 2400000.5 - tle_start - tle_range);
                }
             }
@@ -1384,7 +1384,7 @@ int main( const int argc, const char **argv)
                         was_matched = true;
                      if( objects[i].matches[0].norad_number > 0)
                         {
-                        fprintf( ofile, "\nCOM %05dU = %s\n",
+                        fprintf( ofile, "COM %05dU = %s\n",
                             objects[i].matches[0].norad_number,
                             unpack_intl( objects[i].matches[0].intl_desig, tbuff));
                         objects[i].matches[0].norad_number = -1;
