@@ -162,7 +162,8 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    double jd_tle = 0., tle_range = 1e+10, abs_mag = 0.;
    const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
    static const char *header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Azim   Alt  Elong   Dist(km)  \"/sec   PA";
+           "Date (UTC)  Time       R.A. (J2000)  decl   Azim   Alt  Elong"
+           "  LuElong Dist(km)  \"/sec   PA";
    static const char *geo_header_text =
            "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
 
@@ -220,7 +221,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                char buff[90], dec_buff[20], ra_buff[20], alt_buff[17];
                double pos[3], vel[3], obs_pos[3], ra, dec, dist;
                const double t_since = (jd - tle.epoch) * minutes_per_day;
-               double solar_xyzr[4], topo_posn[3], elong;
+               double solar_xyzr[4], lunar_xyzr[4], topo_posn[3], elong;
                double motion_rate, motion_pa;
                const char *format_string;
 
@@ -258,8 +259,9 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                for( j = 0; j < 3; j++)
                   topo_posn[j] = pos[j] - obs_pos[j];
                motion_rate = compute_angular_rates( obs_pos, topo_posn, vel, &motion_pa);
-               lunar_solar_position( jd, NULL, solar_xyzr);
+               lunar_solar_position( jd, lunar_xyzr, solar_xyzr);
                ecliptic_to_equatorial( solar_xyzr);
+               ecliptic_to_equatorial( lunar_xyzr);
                if( !is_geocentric)
                   {
                   double x_vect[3], y_vect[3], z_vect[3], alt, az;
@@ -275,8 +277,8 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                else
                   *alt_buff = '\0';
                elong = angle_between( topo_posn, solar_xyzr);
-               printf( "%s  %s  %s%s %6.1f %8.0f", buff, ra_buff, dec_buff,
-                     alt_buff, elong, dist);
+               printf( "%s  %s  %s%s %6.1f %6.1f %8.0f", buff, ra_buff, dec_buff,
+                     alt_buff, elong, angle_between( topo_posn, lunar_xyzr), dist);
                motion_rate *= (double)motion_units;
                if( motion_rate < 9.999)
                   format_string = "  %6.4f %6.1f";
