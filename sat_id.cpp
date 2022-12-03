@@ -96,6 +96,7 @@ int snprintf( char *string, const size_t max_len, const char *format, ...);
 #include "afuncs.h"
 #include "date.h"
 #include "sat_util.h"
+#include "stringex.h"
 
 #define OBSERVATION struct observation
 #define MAX_MATCHES 7
@@ -236,7 +237,7 @@ static int get_station_code_data( char *station_code_data,
       {
       char search_buff[5];
 
-      sprintf( search_buff, "\n%.3s", mpc_code);
+      snprintf_err( search_buff, sizeof( search_buff), "\n%.3s", mpc_code);
       cached_ptr = strstr( cached_data, search_buff);
       if( cached_ptr)
          cached_ptr++;
@@ -351,7 +352,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
             offset_t toff;
 
             toff.jd = obs.jd;
-            strcpy( toff.mpc_code, buff + 77);
+            strlcpy_error( toff.mpc_code, buff + 77);
             if( buff[14] == 's')
                {
                for( i = 0; i < 3; i++)
@@ -971,13 +972,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      obj_ptr->matches[i].norad_number = tle.norad_number;
                      strncpy( obj_ptr->matches[i].intl_desig,
                                                       tle.intl_desig, 9);
-                     sprintf( full_intl_desig, "%s%.2s-%s",
+                     snprintf_err( full_intl_desig, sizeof( full_intl_desig), "%s%.2s-%s",
                               (tle.intl_desig[0] < '5' ? "20" : "19"),
                               tle.intl_desig, tle.intl_desig + 2);
-                     sprintf( obuff, "      %05dU = %-11s",
+                     snprintf_err( obuff, sizeof( obuff), "     %05dU = %-11s ",
                            tle.norad_number, full_intl_desig);
                      if( tle.ephemeris_type != 'H')
-                        sprintf( obuff + strlen( obuff),
+                        snprintf_append( obuff, sizeof( obuff),
                                "e=%.2f; P=%.1f min; i=%.1f",
                                tle.eo, 2. * PI / tle.xno,
                                tle.xincl * 180. / PI);
@@ -989,13 +990,13 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                         snprintf( norad_desig, sizeof( norad_desig),
                                            "NORAD %05d", tle.norad_number);
                         remove_redundant_desig( line0, norad_desig);
-                        sprintf( obuff + strlen( obuff), ": %s", line0);
+                        snprintf_append( obuff, sizeof( obuff), ": %s", line0);
                         }
                      obuff[79] = '\0';    /* avoid buffer overrun */
-//                   sprintf( obuff + strlen( obuff), " motion %f", motion_diff);
-                     strcat( obuff, "\n");
-                     sprintf( obuff + strlen( obuff),
-                        "             motion %7.4f\"/sec at PA %5.1f; dist=%8.1f km; offset=%6.3f deg\n",
+//                   snprintf_append( obuff, sizeof( obuff), " motion %f", motion_diff);
+                     strlcat_error( obuff, "\n");
+                     snprintf_append( obuff, sizeof( obuff),
+                        "             motion %7.4f\"/sec at PA %5.1f; dist=%8.1f km; offset=%7.4f deg\n",
                             motion_rate, motion_pa,
                             dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
@@ -1107,7 +1108,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             while( i && tle_file_name[i - 1] != '/' && tle_file_name[i - 1] != '\\')
                i--;
             memcpy( iname, tle_file_name, i);
-            strcpy( iname + i, line2 + 10);
+            strlcpy_err( iname + i, line2 + 10, sizeof( iname) - i);
             if( verbose > 1)
                printf( "Including '%s'\n", iname);
             rval = add_tle_to_obs( objects, n_objects, iname, search_radius,
@@ -1118,8 +1119,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          tle_range = 1e+9;
          look_for_tles = true;
          }
-      strcpy( line0, line1);
-      strcpy( line1, line2);
+      strlcpy_error( line0, line1);
+      strlcpy_error( line1, line2);
       }
    if( verbose)
       printf( "%d TLEs read from '%s', %.3f seconds\n", n_tles_found,
@@ -1127,12 +1128,17 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                 (double)( clock( ) - time_started) / (double)CLOCKS_PER_SEC);
    if( n_tles_found < n_tles_expected_in_file)
       {
-      fprintf( stderr, REVERSE_VIDEO
-                  "**** WARNING : %d TLEs were read from '%s'.  This is unexpected.\n"
-                  NORMAL_VIDEO, n_tles_found, tle_file_name);
+      const char *err_message =
+               "**** WARNING : %d TLEs were read from '%s'.  At least %d were expected.\n";
+
 #ifdef ON_LINE_VERSION
-      printf( "Please e-mail the author (pluto at projectpluto dot com) about this.\n");
+      printf( err_message, n_tles_found, tle_file_name, n_tles_expected_in_file);
+#else
+      fprintf( stderr, REVERSE_VIDEO);
+      fprintf( stderr, err_message, n_tles_found, tle_file_name, n_tles_expected_in_file);
+      fprintf( stderr, NORMAL_VIDEO);
 #endif
+      printf( "Please e-mail the author (pluto at projectpluto dot com) about this.\n");
       }
    fclose( tle_file);
    return( rval);
@@ -1262,7 +1268,7 @@ int main( const int argc, const char **argv)
       for( i = 0; i < argc; i++)
          printf( "Arg %d: '%s'\n", i, argv[i]);
 
-   strcpy( tle_file_name, tname);
+   strlcpy_error( tle_file_name, tname);
 #if !defined( _WIN32) && !defined( __WATCOMC__)
    if( access( tle_file_name, F_OK))
       {
@@ -1275,16 +1281,16 @@ int main( const int argc, const char **argv)
 
          if( verbose)
             fprintf( stderr, "'%s' failed\n", tle_file_name);
-         strcpy( buff, "tles/");
-         strcat( buff, tname);
+         strlcpy_error( buff, "tles/");
+         strlcat_error( buff, tname);
          make_config_dir_name( tle_file_name, buff);
          if( access( tle_file_name, F_OK))
             {
             if( verbose)
                fprintf( stderr, "'%s' failed\n", tle_file_name);
-            strcpy( tle_file_name, getenv( "HOME"));
-            strcat( tle_file_name, "/tles/");
-            strcat( tle_file_name, tname);
+            strlcpy_error( tle_file_name, getenv( "HOME"));
+            strlcat_error( tle_file_name, "/tles/");
+            strlcat_error( tle_file_name, tname);
             }
          }
       }
