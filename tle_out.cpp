@@ -9,6 +9,7 @@ https://en.wikipedia.org/wiki/Two-line_elements       */
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include <assert.h>
 #include "norad.h"
 
       /* Useful constants to define,  in case the value of PI or the number
@@ -113,7 +114,8 @@ static void put_sci( char *obuff, double ival)
          else
             break;
          }
-      sprintf( obuff, "%5d", oval);
+      snprintf( obuff, 7, "%5d", oval);
+      assert( 5 == strlen( obuff));
       if( exponent > 0)
          {
          obuff[5] = '+';
@@ -136,6 +138,7 @@ static char int_to_base_34( const int digit)
 {
    int rval;
 
+   assert( digit >= 0 && digit < 34);
    if( digit < 0 || digit >= 34)
       rval = ' ';
    else if( digit < 10)
@@ -180,10 +183,7 @@ static void store_norad_number_in_alpha5( char *obuff, const int norad_number)
    if( norad_number < 0 || norad_number >= 34 * 34 * 34 * 34 * 34)
       strcpy( obuff, "     ");      /* outside representable range */
    else if( norad_number < N_TYPE_1_2)
-      {
-      *obuff = int_to_base_34( norad_number / 10000);
-      sprintf( obuff + 1, "%04d", norad_number % 10000);
-      }
+      fix_digits( obuff, norad_number,              34, 10, 10, 10, 10);
    else if( norad_number < N_TYPE_1_2 + N_TYPE_3)
       fix_digits( obuff, norad_number - N_TYPE_1_2, 34, 34, 34, 34, 24);
    else if( norad_number < N_TYPE_1_2 + N_TYPE_3 + N_TYPE_4)

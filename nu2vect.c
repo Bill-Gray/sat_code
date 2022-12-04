@@ -2,7 +2,9 @@
 
 ftp://ftp.kiam1.rssi.ru/pub/gps/spectr-rg/nu/
 
-   and output into a form ingestible by Find_Orb.  Input lines give
+   and output into a form ingestible by Find_Orb.  (Note that these
+haven't been updated for a while;  we've been tracking Spektr-RG
+solely through observed astrometry.)  Input lines give
 
 0.000    (always zero,  means J2000)
 1        (loop number;  ignore)
@@ -27,6 +29,10 @@ approximately to an area/mass ratio of 0.015 m^2/kg,  which is
 quite close to what we've been getting from the optical astrometry
 orbit solution.
 
+   Compile with
+
+gcc -Wextra -Wall -O3 -pedantic nu2vect.c -I../include -L../lib -o nu2vect -llunar
+
    Python code to convert .nu files to STK ephemeris files is at
 
 https://github.com/Satsir/STK/blob/main/nuToEph.py     */
@@ -35,14 +41,17 @@ https://github.com/Satsir/STK/blob/main/nuToEph.py     */
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "stringex.h"
 
 int main( const int argc, const char **argv)
 {
-   FILE *ifile = fopen( argv[1], "rb");
+   FILE *ifile = (argc == 2 ? fopen( argv[1], "rb") : NULL);
    char buff[90];
    char command[200];
    int i;
 
+   if( !ifile)
+      fprintf( stderr, "See comments at start of 'nu2vect.c' for usage\n");
    assert( ifile);
    for( i = 0; i < 10; i++)
       if( fgets( buff, sizeof( buff), ifile))
@@ -55,32 +64,33 @@ int main( const int argc, const char **argv)
                {
                const int day = (int)ival;
 
-               sprintf( buff, "%04d-%02d-%02d",
+               snprintf_err( buff, sizeof( buff), "%04d-%02d-%02d",
                         day / 10000, (day / 100) % 100, day % 100);
                printf( "Date : %s\n", buff);
-               sprintf( command, "find_orb \"-oSpektr-RG = 2019-040A = NORAD 44432\" -v%sT", buff);
+               snprintf_err( command, sizeof( command),
+                       "find_orb \"-oSpektr-RG = 2019-040A = NORAD 44432\" -v%sT", buff);
                }
                break;
             case 3:
                {
                const int millisec = (int)( ival * 1000.);
 
-               sprintf( buff, "%02d:%02d:%02d.%03d",
+               snprintf_err( buff, sizeof( buff), "%02d:%02d:%02d.%03d",
                         millisec / 10000000,
                         (millisec / 100000) % 100,
                         (millisec / 1000) % 100, millisec % 100);
                printf( "Time : %s\n", buff);
-               strcat( command, buff);
-               strcat( command, "-3h");   /* correction for Moscow time */
+               strlcat_error( command, buff);
+               strlcat_error( command, "-3h");   /* correction for Moscow time */
                }
                break;
             case 4: case 5: case 6:
                printf( "  Posn %f km\n", ival * 1000.);
-               sprintf( command + strlen( command), ",%.2f", ival * 1000.);
+               snprintf_append( command, sizeof( command), ",%.2f", ival * 1000.);
                break;
             case 7: case 8: case 9:
                printf( "  Vel  %f km/s\n", ival);
-               sprintf( command + strlen( command), ",%.7f", ival);
+               snprintf_append( command, sizeof( command), ",%.7f", ival);
                break;
             break;
             }

@@ -70,7 +70,7 @@ int main( const int argc, const char **argv)
             {
             case 'i':
                assert( strlen( arg) < 9);
-               sprintf( intl_desig, "%-9s", arg);
+               snprintf( intl_desig, sizeof( intl_desig), "%-9s", arg);
                break;
             case 'n':
                norad_desig = arg;

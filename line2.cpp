@@ -36,6 +36,7 @@ different as a result).  So this really works,  at present,  only for
 #include "watdefs.h"
 #include "afuncs.h"
 #include "mpc_func.h"
+#include "stringex.h"
 
 #define PI \
    3.1415926535897932384626433832795028841971693993751058209749445923
@@ -57,8 +58,8 @@ int find_tle( tle_t *tle, const char *filename, const int norad_no)
       if( *line1 == '1' && *line2 == '2' && atoi( line1 + 2) == norad_no)
          if( parse_elements( line1, line2, tle) >= 0)
             rval = 0;
-      strcpy( line0, line1);
-      strcpy( line1, line2);
+      strlcpy_error( line0, line1);
+      strlcpy_error( line1, line2);
       }
    fclose( ifile);
    if( rval)
@@ -152,7 +153,7 @@ int main( const int argc, const char **argv)
             {
             char *tptr = buff + 34 + i * 12;
 
-            sprintf( tptr, "%11.4f", fabs( state_j2000[i]));
+            snprintf_err( tptr, 12, "%11.4f", fabs( state_j2000[i]));
             *tptr = (state_j2000[i] > 0. ? '+' : '-');
             tptr[11] = ' ';
             }

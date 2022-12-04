@@ -17,6 +17,7 @@
    #include "cgi_func.h"
 #endif
 #include "watdefs.h"
+#include "stringex.h"
 
 int sat_id_main( const int argc, const char **argv);
 
@@ -106,12 +107,12 @@ int main( const int unused_argc, const char **unused_argv)
    argv[0] = "sat_id";
    argv[1] = temp_obs_filename;
    argv[2] = "-t../../tles/tle_list.txt";
-   sprintf( field, "-r%.2f", search_radius);
+   snprintf_err( field, sizeof( field), "-r%.2f", search_radius);
    argv[3] = field;
-   sprintf( buff, "-y%f", motion_cutoff);
+   snprintf_err( buff, max_buff_size, "-y%f", motion_cutoff);
    argv[4] = buff;
    tptr = buff + strlen( buff) + 1;
-   sprintf( tptr, "-z%f", low_speed_cutoff);
+   snprintf( tptr, 15, "-z%f", low_speed_cutoff);
    argv[5] = tptr;
    argv[6] = NULL;
    for( i = 0; argv[i]; i++)
