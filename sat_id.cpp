@@ -155,8 +155,10 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
    obs->jd = extract_date_from_mpc_report( buff, NULL);
    if( !obs->jd)           /* not an 80-column MPC record */
       return( -1);
-   get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
-                                     NULL, &obs->dec, NULL);
+   if( get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
+                                     NULL, &obs->dec, NULL))
+      if( 's' != buff[14])   /* satellite offsets won't have RA/decs */
+         return( -2);
    assert( strlen( buff) < sizeof( obs->text));
    strncpy( obs->text, buff, sizeof( obs->text));
    obs->text[80] = '\0';
