@@ -331,9 +331,12 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
       {
       if( !memcmp( buff, "# Range:", 8))
          {
-         buff[19] = '\0';
-         if( get_time_from_string( 0., buff + 9, FULL_CTIME_YMD, NULL) < e->jd_end
-                  && get_time_from_string( 0., buff + 20, FULL_CTIME_YMD, NULL) > e->jd_start)
+         char t_start[40], t_end[40];
+         int n_scanned = sscanf( buff + 8, "%39s %39s", t_start, t_end);
+
+         assert( 2 == n_scanned);
+         if( get_time_from_string( 0., t_start, FULL_CTIME_YMD, NULL) < e->jd_end
+                  && get_time_from_string( 0., t_end, FULL_CTIME_YMD, NULL) > e->jd_start)
             is_in_range = 1;
          }
       if( !memcmp( buff, "# ID:", 5))
