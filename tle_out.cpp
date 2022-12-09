@@ -200,12 +200,12 @@ static void store_norad_number_in_alpha5( char *obuff, const int norad_number)
 inclination,  ascending node,  argument of perigee,  and mean motion.  Which
 is why I've used this format string :
 
-      sprintf( line2 + 8, "%08.4f %08.4f %07ld %08.4f %08.4f %011.8f", ...)
+   snprintf( line2 + 8, 57, "%08.4f %08.4f %07ld %08.4f %08.4f %011.8f", ...)
 
    'classfd.tle' and some other sources don't use leading zeroes.  For them,
-use the following format string for those four quantities :
+one should use the following format string for those four quantities :
 
-      sprintf( line2 + 8, "%8.4f %8.4f %07ld %8.4f %8.4f %11.8f", ...)  */
+   snprintf( line2 + 8, 57, "%8.4f %8.4f %07ld %8.4f %8.4f %11.8f", ...)  */
 
 void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
 {
@@ -228,12 +228,13 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
       day_of_year = 0.;
       }
    store_norad_number_in_alpha5( norad_num_text, tle->norad_number);
-   sprintf( buff,
+   snprintf( buff, 72,
 /*                                     xndt2o    xndd6o   bstar  eph bull */
            "1 %5s%c %-8s %02ld%12.8f -.000hit00 +00000-0 +00000-0 %c %4dZ\n",
            norad_num_text, tle->classification, tle->intl_desig,
            year % 100L, day_of_year,
            tle->ephemeris_type, tle->bulletin_number);
+   assert( 70 == strlen( buff));
    if( buff[20] == ' ')       /* fill in leading zeroes for day of year */
       buff[20] = '0';
    if( buff[21] == ' ')
@@ -241,10 +242,14 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
    if( tle->ephemeris_type != 'H')     /* "normal",  standard TLEs */
       {
       double deriv_mean_motion = tle->xndt2o * MINUTES_PER_DAY_SQUARED / (2. * PI);
+      unsigned long lderiv;
+
       if( deriv_mean_motion >= 0)
          buff[33] = ' ';
-      deriv_mean_motion = fabs( deriv_mean_motion * 100000000.) + .5;
-      sprintf( buff + 35, "%08ld", (long)deriv_mean_motion);
+      lderiv = (unsigned long)fabs( deriv_mean_motion * 100000000.) + .5;
+      assert( lderiv < 100000000);
+      snprintf( buff + 35, 10, "%08lu", lderiv);
+      assert( 8 == strlen( buff + 35));
       buff[43] = ' ';
       put_sci( buff + 44, tle->xndd6o * MINUTES_PER_DAY_CUBED / (2. * PI));
       put_sci( buff + 53, tle->bstar / AE);
@@ -259,16 +264,21 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
       buff[62] = 'H';
       }
    add_tle_checksum_data( buff);
-   line2 = buff + strlen( buff);
-   sprintf( line2, "2 %5s ", norad_num_text);
+   assert( 71 == strlen( buff));
+   line2 = buff + 71;
+   snprintf( line2, 10, "2 %5s ", norad_num_text);
+   assert( 8 == strlen( line2));
    if( tle->ephemeris_type != 'H')     /* "normal",  standard TLEs */
-      sprintf( line2 + 8, "%08.4f %08.4f %07ld %08.4f %08.4f %011.8f",
+      {
+      snprintf( line2 + 8, 57, "%08.4f %08.4f %07ld %08.4f %08.4f %011.8f",
            zero_to_two_pi( tle->xincl) * 180. / PI,
            zero_to_two_pi( tle->xnodeo) * 180. / PI,
            (long)( tle->eo * 10000000. + .5),
            zero_to_two_pi( tle->omegao) * 180. / PI,
            zero_to_two_pi( tle->xmo) * 180. / PI,
            tle->xno * MINUTES_PER_DAY / (2. * PI));
+      assert( 55 == strlen( line2 + 8));
+      }
    else
       {
       size_t i;
@@ -278,6 +288,7 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
       for( i = 0; i < 3; i++)
          set_high_value( line2 + 33 + i * 10, vel[i] * 1e+4);
       }
-   sprintf( line2 + 63, "%5dZ\n", tle->revolution_number);
+   assert( tle->revolution_number >= 0 && tle->revolution_number < 100000);
+   snprintf( line2 + 63, 8, "%5dZ\n", tle->revolution_number);
    add_tle_checksum_data( line2);
 }
