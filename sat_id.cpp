@@ -1130,15 +1130,14 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                 (double)( clock( ) - time_started) / (double)CLOCKS_PER_SEC);
    if( n_tles_found < n_tles_expected_in_file)
       {
-      const char *err_message =
-               "**** WARNING : %d TLEs were read from '%s'.  At least %d were expected.\n";
+      const char *err_message = REVERSE_VIDEO
+               "**** WARNING : %d TLEs were read from '%s'.  At least %d were expected.\n"
+                                NORMAL_VIDEO;
 
 #ifdef ON_LINE_VERSION
       printf( err_message, n_tles_found, tle_file_name, n_tles_expected_in_file);
 #else
-      fprintf( stderr, REVERSE_VIDEO);
       fprintf( stderr, err_message, n_tles_found, tle_file_name, n_tles_expected_in_file);
-      fprintf( stderr, NORMAL_VIDEO);
 #endif
       printf( "Please e-mail the author (pluto at projectpluto dot com) about this.\n");
       }
