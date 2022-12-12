@@ -157,8 +157,8 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
       return( -1);
    if( get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
                                      NULL, &obs->dec, NULL))
-      if( 's' != buff[14])   /* satellite offsets won't have RA/decs */
-         return( -2);
+      if( 's' != buff[14] && 'v' != buff[14])   /* satellite offsets and */
+         return( -2);          /* roving obs lat/lons won't have RA/decs */
    assert( strlen( buff) < sizeof( obs->text));
    strncpy( obs->text, buff, sizeof( obs->text));
    obs->text[80] = '\0';
