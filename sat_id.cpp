@@ -643,6 +643,28 @@ static double find_good_pair( OBSERVATION *obs, const size_t n_obs,
    return( speed);
 }
 
+/* Aberration from the Ron-Vondrak method,  from Meeus'
+_Astronomical Algorithms_, p 153,  just the leading terms */
+
+static void compute_aberration( const double t_cen, double *ra, double *dec)
+{
+   const double l3 = 1.7534703 + 628.3075849 * t_cen;
+   const double sin_l3 = sin( l3), cos_l3 = cos( l3);
+   const double sin_2l3 = 2. * sin_l3 * cos_l3;
+   const double cos_2l3 = 2. * cos_l3 * cos_l3 - 1.;
+   const double x = -1719914. * sin_l3 - 25. * cos_l3
+                       +6434. * sin_2l3 + 28007 * cos_2l3;
+   const double y = 25. * sin_l3 + 1578089 * cos_l3
+                +25697. * sin_2l3 - 5904. * cos_2l3;
+   const double z = 10. * sin_l3 + 684185. * cos_l3
+                +11141. * sin_2l3 - 2559. * cos_2l3;
+   const double c = 17314463350.;    /* speed of light is 173.1446335 AU/day */
+   const double sin_ra = sin( *ra), cos_ra = cos( *ra);
+
+   *ra -= (y * cos_ra - x * sin_ra) / (c * cos( *dec));
+   *dec += ((x * cos_ra + y * sin_ra) * sin( *dec) - z * cos( *dec)) / c;
+}
+
 static void error_exit( const int exit_code)
 {
    printf(
@@ -672,6 +694,7 @@ static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
 {
    double pos[3]; /* Satellite position vector */
    double t_since = (optr->jd - tle->epoch) * minutes_per_day;
+   const double j2000 = 2451545.;      /* JD 2451545 = 2000 Jan 1.5 */
    int sxpx_rval;
 
    if( select_ephemeris( tle))
@@ -684,6 +707,7 @@ static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
    if( verbose > 2 && sxpx_rval)
       printf( "TLE failed for JD %f: %d\n", optr->jd, sxpx_rval);
    get_satellite_ra_dec_delta( optr->observer_loc, pos, ra, dec, dist);
+   compute_aberration( (optr->jd - j2000) / 36525., ra, dec);
    return( sxpx_rval);
 }
 
