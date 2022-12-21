@@ -864,6 +864,9 @@ of the observations.  The function is called for each TLE file.
 int norad_id = 0;
 const char *intl_desig = NULL;
 
+static int search_norad = 0;
+static char search_intl[12];
+
 double tle_start = 0., tle_range = 1e+9;
 
 /* The following may be reset for a particular object where we have TLEs
@@ -916,6 +919,16 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          n_tles_found++;
          if( tle.norad_number == 99999)
             look_up_extended_identifiers( line0, &tle);
+         if( (search_norad && search_norad != tle.norad_number)
+               || (*search_intl && strcmp( search_intl, tle.intl_desig)))
+            {
+            fprintf( stderr, REVERSE_VIDEO "WARNING: desigs mismatch the 'ID' field : %s"
+                        NORMAL_VIDEO "\n", tle_file_name);
+            fprintf( stderr, "NORAD IDs are %d, %d\n", search_norad, tle.norad_number);
+            fprintf( stderr, "Int'l IDs are '%s', '%s'\n", search_intl, tle.intl_desig);
+            search_norad = 0;       /* suppress cascading errors */
+            *search_intl = '\0';
+            }
          }
       if( is_a_tle && (tle.ephemeris_type == 'H'
                  || tle.xno < 2. * PI * max_revs_per_day / mins_per_day)
@@ -1095,7 +1108,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                            NORMAL_VIDEO, tle_file_name, time_buff, mjd_end - curr_mjd);
             }
          if( !got_obs_in_range( objects, n_objects, mjd_start + 2400000.5,
-                                            mjd_end + 2400000.5))
+                                            mjd_end + 2400000.5) && !check_all_tles)
             {
             if( verbose)
                fprintf( stderr, REVERSE_VIDEO "'%s' contains no TLEs for our time range\n"
@@ -1103,6 +1116,21 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             fclose( tle_file);
             return( 0);
             }
+         }
+      else if( !memcmp( line2, "# ID: ", 6))
+         {
+         int n_read = sscanf( line2 + 6, "%d %s", &search_norad, search_intl);
+         size_t i;
+
+         assert( 2 == n_read);
+         for( i = strlen( search_intl); i < 8; i++)
+            search_intl[i] = ' ';
+         search_intl[8] = '\0';
+         }
+      else if( !memcmp( line2, "# ID off", 8))
+         {
+         search_norad = 0;
+         *search_intl = '\0';
          }
       else if( !memcmp( line2, "# Range: ", 9))
          {
