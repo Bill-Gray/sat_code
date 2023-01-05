@@ -21,7 +21,8 @@ program to squawk loudly if Space-Track stops supplying CXO TLEs.)
 int main( const int argc, const char **argv)
 {
    static const char *sats[] = {
-          "00041B ! Cluster II-FM7",
+          "00041A ! Cluster II-FM7",
+          "00041B ! Cluster II-FM6",
           "00045A ! Cluster II-FM5",
           "00045B ! Cluster II-FM8",
           "02048A ! INTEGRAL",
@@ -38,7 +39,6 @@ int main( const int argc, const char **argv)
           "15011D ! MMS 4",
           "15019C ! Yuanzheng-1 Y1",
           "18038A   TESS",
-          "19021B   Falcon 9 booster",
           "63039A ! Vela 1A",
           "64040B ! Vela 2B",
           "65058B   Vela 6",
