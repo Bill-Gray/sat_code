@@ -1382,8 +1382,8 @@ int main( const int argc, const char **argv)
       {
       objects[i].speed = find_good_pair( objects[i].obs,
                   objects[i].n_obs, &objects[i].idx1, &objects[i].idx2);
-      if( objects[i].speed >= speed_cutoff &&
-              (objects[i].n_obs > 1 || include_singletons))
+      if( (objects[i].speed >= speed_cutoff && objects[i].n_obs > 1)
+            || (include_singletons && objects[i].n_obs == 1))
          {               /* fast enough to be considered */
          objects[j] = objects[i];
          j++;
