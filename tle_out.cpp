@@ -270,13 +270,16 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
    assert( 8 == strlen( line2));
    if( tle->ephemeris_type != 'H')     /* "normal",  standard TLEs */
       {
+      const double revs_per_day = tle->xno * MINUTES_PER_DAY / (2. * PI);
+
+      assert( revs_per_day > 0. && revs_per_day < 99.);
       snprintf( line2 + 8, 57, "%08.4f %08.4f %07ld %08.4f %08.4f %011.8f",
            zero_to_two_pi( tle->xincl) * 180. / PI,
            zero_to_two_pi( tle->xnodeo) * 180. / PI,
            (long)( tle->eo * 10000000. + .5),
            zero_to_two_pi( tle->omegao) * 180. / PI,
            zero_to_two_pi( tle->xmo) * 180. / PI,
-           tle->xno * MINUTES_PER_DAY / (2. * PI));
+           revs_per_day);
       assert( 55 == strlen( line2 + 8));
       }
    else
