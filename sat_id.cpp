@@ -99,7 +99,6 @@ int snprintf( char *string, const size_t max_len, const char *format, ...);
 #include "stringex.h"
 
 #define OBSERVATION struct observation
-#define MAX_MATCHES 7
 
 OBSERVATION
    {
@@ -118,9 +117,9 @@ typedef struct
 typedef struct
 {
    OBSERVATION *obs;
-   size_t idx1, idx2, n_obs;
+   size_t idx1, idx2, n_obs, n_matches;
    double speed;
-   match_t matches[MAX_MATCHES];
+   match_t *matches;
 } object_t;
 
 /* When we encounter a line for a spacecraft-based observation's offset
@@ -956,18 +955,19 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                {
                double radius;
                double ra, dec, dist_to_satellite;
-               int sxpx_rval, n_matches = 0;
+               int sxpx_rval;
+               size_t i = 0;
 
                sxpx_rval = compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
                               optr1, &tle, sat_params);
                radius = angular_sep( ra - optr1->ra, dec, optr1->dec, NULL) * 180. / PI;
-               while( n_matches < MAX_MATCHES - 1
-                       && obj_ptr->matches[n_matches].norad_number != tle.norad_number
-                       && obj_ptr->matches[n_matches].norad_number)
-                  n_matches++;
+               while( i < obj_ptr->n_matches
+                       && obj_ptr->matches[i].norad_number != tle.norad_number
+                       && obj_ptr->matches[i].norad_number)
+                  i++;
                if( !sxpx_rval && radius < search_radius      /* good enough for us! */
                        && radius < max_expected_error
-                       && !obj_ptr->matches[n_matches].norad_number)
+                       && i == obj_ptr->n_matches)
                   {
                   const double dt = optr2->jd - optr1->jd;
                   double motion_diff, ra2, dec2;
@@ -991,7 +991,6 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      char obuff[200];
                      char full_intl_desig[20];
                      double motion_rate = 0., motion_pa = 0.;
-                     size_t i;
                      const double arcminutes_per_radian = 60. * 180. / PI;
 
                      motion_rate = angular_sep( optr1->ra - optr2->ra,
@@ -1003,12 +1002,16 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      memcpy( line1 + 30, line1 + 11, 6);
                      line1[11] = '\0';
                      i = 0;
-                     while( (int)i < n_matches && radius > obj_ptr->matches[i].dist)
+                     while( i < obj_ptr->n_matches && radius > obj_ptr->matches[i].dist)
                         i++;
+                     obj_ptr->matches = (match_t *)realloc( obj_ptr->matches,
+                                    (obj_ptr->n_matches + 1) * sizeof( match_t));
                      memmove( obj_ptr->matches + i + 1, obj_ptr->matches + i,
-                              (n_matches - i) * sizeof( match_t));
+                              (obj_ptr->n_matches - i) * sizeof( match_t));
+                     memset( obj_ptr->matches + i, 0, sizeof( match_t));
                      obj_ptr->matches[i].dist = radius;
                      obj_ptr->matches[i].norad_number = tle.norad_number;
+                     obj_ptr->n_matches++;
                      strncpy( obj_ptr->matches[i].intl_desig,
                                                       tle.intl_desig, 9);
                      snprintf_err( full_intl_desig, sizeof( full_intl_desig), "%s%.2s-%s",
@@ -1405,10 +1408,10 @@ int main( const int argc, const char **argv)
          size_t j;
 
          printf( "\n%.12s ", objects[i].obs->text);
-         for( j = 0; objects[i].matches[j].intl_desig[0] && j < MAX_MATCHES; j++)
+         for( j = 0; j < objects[i].n_matches; j++)
             printf( " %05d %s", objects[i].matches[j].norad_number,
                          unpack_intl( objects[i].matches[j].intl_desig, buff));
-         if( objects[i].matches[0].norad_number)
+         if( objects[i].n_matches)
             n_matched++;
          }
       if( n_objects)
@@ -1439,10 +1442,10 @@ int main( const int argc, const char **argv)
                for( i = 0; (size_t)i < n_objects; i++)
                   if( !memcmp( objects[i].obs->text, buff, 12))
                      {
-                     if( objects[i].matches[0].norad_number)
-                        was_matched = true;
-                     if( objects[i].matches[0].norad_number > 0)
+                     if( objects[i].n_matches > 0
+                             && objects[i].matches[0].norad_number > 0)
                         {
+                        was_matched = true;
                         fprintf( ofile, "COM %05dU = %s\n",
                             objects[i].matches[0].norad_number,
                             unpack_intl( objects[i].matches[0].intl_desig, tbuff));
@@ -1460,6 +1463,9 @@ int main( const int argc, const char **argv)
       }
    fclose( ifile);
    free( obs);
+   for( i = 0; (size_t)i < n_objects; i++)
+      if( objects[i].matches)
+         free( objects[i].matches);
    free( objects);
    get_station_code_data( NULL, NULL);
    printf( "\n%.1f seconds elapsed\n", (double)clock( ) / (double)CLOCKS_PER_SEC);
