@@ -163,9 +163,9 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    const bool is_geocentric = (e->rho_sin_phi == 0. && e->rho_cos_phi == 0.);
    static const char *header_text =
            "Date (UTC)  Time       R.A. (J2000)  decl   Azim   Alt  Elong"
-           "  LuElong Dist(km)  \"/sec   PA";
+           "  LuElo  Dist(km) \"/sec     PA";
    static const char *geo_header_text =
-           "Date (UTC)  Time       R.A. (J2000)  decl   Elong   Dist(km)  \"/sec   PA";
+           "Date (UTC)  Time       R.A. (J2000)  decl   Elong  LuElo  Dist(km) \"/sec     PA";
 
    if( verbose)
       printf( "Should examine '%s'; start line %d\n", filename, start_line);
@@ -233,7 +233,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                               tle.intl_desig, tle.intl_desig + 2);
                   snprintf( _header, sizeof( _header),
                           "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
-                  strcat( _header, abs_mag ? "     Mag\n" : "\n");
+                  strcat( _header, abs_mag ? "      Mag\n" : "\n");
                   if( motion_units == 60)
                      {
                      char *tptr = strstr( _header, "/sec ");
