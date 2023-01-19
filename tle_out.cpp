@@ -246,7 +246,7 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
 
       if( deriv_mean_motion >= 0)
          buff[33] = ' ';
-      lderiv = (unsigned long)fabs( deriv_mean_motion * 100000000.) + .5;
+      lderiv = (unsigned long)( fabs( deriv_mean_motion * 100000000.) + .5);
       assert( lderiv < 100000000);
       snprintf( buff + 35, 10, "%08lu", lderiv);
       assert( 8 == strlen( buff + 35));
