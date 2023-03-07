@@ -849,11 +849,11 @@ static void remove_redundant_desig( char *name, const char *desig)
 static double lookahead_warning_days = 7.;
 
           /* The computed and observed motions should match,  but
-          (obviously) only to some tolerance.  A tolerance of 20
+          (obviously) only to some tolerance.  A tolerance of 60
           arcseconds seems to work. (May seem large,  but these
           objects often 'streak' and have large residuals.)         */
 
-double motion_mismatch_limit = 20.;
+double motion_mismatch_limit = 60.;
 
 /* Given a set of MPC observations and a TLE file,  this function looks at
 each TLE in the file and checks to see if that satellite came close to any
