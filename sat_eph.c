@@ -320,6 +320,8 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
    int is_in_range = 0, id_matches = 1, start_line = 0;
 
    snprintf( buff, sizeof( buff), "%s/%s", path_to_tles, tle_list_filename);
+   if( verbose > 1)
+      printf( "Opening '%s'\n", buff);
    ifile = fopen( buff, "rb");
    if( !ifile)
       {
@@ -469,16 +471,19 @@ int dummy_main( const int argc, const char **argv)
 {
    int i;
    ephem_t e;
-   bool round_to_nearest_step = false;
+   bool round_to_nearest_step = true;
    const char *mpc_code = "500";
    const char *override_tle_filename = NULL;
 
-   if( argc < 3)
+   if( argc < 2)
       {
       error_help( );
       return( 0);
       }
    memset( &e, 0, sizeof( ephem_t));
+   e.jd_start = current_jd( );
+   e.n_steps = 20;
+   e.step_size = 1. / 24.;
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-' && argv[i][1])
          {
@@ -496,13 +501,8 @@ int dummy_main( const int argc, const char **argv)
                override_tle_filename = arg;
                break;
             case 't':
-               {
-               const double jan_1970 = 2440587.5;
-               const double curr_jd = jan_1970 + (double)time( NULL) / (double)seconds_per_day;
-
-               e.jd_start = get_time_from_string( curr_jd, arg, FULL_CTIME_YMD, NULL);
+               e.jd_start = get_time_from_string( e.jd_start, arg, FULL_CTIME_YMD, NULL);
                break;
-               }
             case 'n':
                e.n_steps = atoi( arg);
                break;
