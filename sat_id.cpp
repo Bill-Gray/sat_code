@@ -1200,6 +1200,31 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    return( rval);
 }
 
+/* Output punch-card formatted astrometry is time-stamped when possible.
+The scheme is the same as used for time-stamping NEOCP observations in
+'neocp.cpp' and 'neocp2.cpp' in the 'miscell' repository (q.v) and makes
+use of the fact that columns 57 to 65 default to being spaces. */
+
+static void time_tag( char *tag)
+{
+   if( !memcmp( tag, "     ", 5))
+      {
+      const time_t t0 = time( NULL);
+      struct tm tm;
+
+#ifdef _WIN32
+      memcpy( &tm, gmtime( &t0), sizeof( tm));
+#else
+      gmtime_r( &t0, &tm);
+#endif
+      tag[0] = '~';
+      tag[1] = int_to_mutant_hex_char( tm.tm_mon + 1);
+      tag[2] = int_to_mutant_hex_char( tm.tm_mday);
+      tag[3] = int_to_mutant_hex_char( tm.tm_hour);
+      tag[4] = int_to_mutant_hex_char( tm.tm_min);
+      }
+}
+
 /* Given a 'packed' international designation such as 92044A or
 10050BZ,  this outputs the 'unpacked/ desig 1992-044A or 2010-050BZ. */
 
@@ -1439,6 +1464,7 @@ int main( const int argc, const char **argv)
                char tbuff[30];
                bool was_matched = false;
 
+               time_tag( buff + 59);
                for( i = 0; (size_t)i < n_objects; i++)
                   if( !memcmp( objects[i].obs->text, buff, 12))
                      {
