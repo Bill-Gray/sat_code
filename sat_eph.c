@@ -457,13 +457,14 @@ static void fix_desig( char *desig)
 
 static void error_help( void)
 {
-   printf( "Mandatory 'sat_eph' arguments:\n"
-           "   -c(MPC code) : specify location\n"
-           "   -t(date/time) : starting time of ephemeris\n"
-           "   -n(#) : number of ephemeris steps\n"
-           "   -s(#) : ephemeris step size in days\n"
-           "   -o(#) : five digit NORAD number\n"
-           "Optional arguments:\n"
+   printf( "'sat_eph' arguments:\n"
+           "   -c(MPC code) : specify location (default = geocentric)\n"
+           "   -t(date/time) : starting time of ephemeris (default = now)\n"
+           "   -n(#) : number of ephemeris steps (default = 20)\n"
+           "   -s(#) : ephemeris step size in days (default = 1h)\n"
+           "   -o(#) : five digit NORAD number or YYNNNA international designation\n"
+           "   -r    : do _not_ round times to nearest step size\n"
+           "   -u    : show motions in \"/min = degrees/hr (default is \"/sec)\n"
            "   -v(#) : level of verbosity\n");
 }
 
@@ -507,7 +508,7 @@ int dummy_main( const int argc, const char **argv)
                e.n_steps = atoi( arg);
                break;
             case 'r':
-               round_to_nearest_step = true;
+               round_to_nearest_step = false;
                break;
             case 's':
                if( arg && *arg)
