@@ -112,6 +112,7 @@ typedef struct
    double dist;
    int norad_number;
    char intl_desig[9];
+   char text[54];
 } match_t;
 
 typedef struct
@@ -1061,6 +1062,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                         snprintf_append( obuff, sizeof( obuff), ": %s", line0);
                         }
                      obuff[79] = '\0';    /* avoid buffer overrun */
+                     strlcpy_error( obj_ptr->matches[i].text, obuff + 26);
 //                   snprintf_append( obuff, sizeof( obuff), " motion %f", motion_diff);
                      strlcat_error( obuff, "\n");
                      snprintf_append( obuff, sizeof( obuff),
@@ -1248,7 +1250,7 @@ static void time_tag( char *tag)
       const time_t t0 = time( NULL);
       struct tm tm;
 
-#ifdef _WIN32
+#if defined( _WIN32) || defined( __WATCOMC__)
       memcpy( &tm, gmtime( &t0), sizeof( tm));
 #else
       gmtime_r( &t0, &tm);
@@ -1472,6 +1474,13 @@ int main( const int argc, const char **argv)
          for( j = 0; j < objects[i].n_matches; j++)
             printf( " %05d %s", objects[i].matches[j].norad_number,
                          unpack_intl( objects[i].matches[j].intl_desig, buff));
+         if( objects[i].n_matches == 1)
+            {
+            char *tptr = strchr( objects[i].matches[0].text, ':');
+
+            assert( tptr);              /* if only one match,  output */
+            printf( " %s", tptr + 1);   /* the object name */
+            }
          if( objects[i].n_matches)
             n_matched++;
          }
@@ -1508,9 +1517,10 @@ int main( const int argc, const char **argv)
                              && objects[i].matches[0].norad_number > 0)
                         {
                         was_matched = true;
-                        fprintf( ofile, "COM %05dU = %s\n",
+                        fprintf( ofile, "COM %05dU = %s   %s\n",
                             objects[i].matches[0].norad_number,
-                            unpack_intl( objects[i].matches[0].intl_desig, tbuff));
+                            unpack_intl( objects[i].matches[0].intl_desig, tbuff),
+                            strchr( objects[i].matches[0].text, ':') + 1);
                         objects[i].matches[0].norad_number = -1;
                         }
                      }
