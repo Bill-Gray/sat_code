@@ -17,8 +17,10 @@ obs_test.exe: obs_test.obj wsatlib.lib
 obs_tes2.exe: obs_tes2.obj wsatlib.lib
    wcl386 -zq -k10000 obs_tes2.obj wsatlib.lib
 
-sat_id.exe: sat_id.obj sat_util.obj wsatlib.lib ../lib/wafuncs.lib
-   wcl386 -zq -k10000 sat_id.obj sat_util.obj wsatlib.lib ../lib/wafuncs.lib
+WAT_LIB=../watlib
+
+sat_id.exe: sat_id.obj sat_util.obj wsatlib.lib $(WAT_LIB)/wafuncs.lib
+   wcl386 -zq -k10000 sat_id.obj sat_util.obj wsatlib.lib $(WAT_LIB)/wafuncs.lib
 
 test_out.exe: test_out.obj wsatlib.lib
    wcl386 -zq -k10000 test_out.obj wsatlib.lib
