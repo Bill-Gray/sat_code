@@ -324,6 +324,23 @@ static bool offset_matches_obs( const offset_t *offset, const OBSERVATION *obs)
       return( false);
 }
 
+static int set_observer_location( OBSERVATION *obs)
+{
+   char station_data[100];
+   const int rval = get_station_code_data( station_data, obs->text + 77);
+
+   if( !rval)
+       {
+       mpc_code_t code_data;
+
+       get_mpc_code_info( &code_data, station_data);
+       observer_cartesian_coords( obs->jd, code_data.lon,
+             code_data.rho_cos_phi, code_data.rho_sin_phi, obs->observer_loc);
+       j2000_to_epoch_of_date( obs->jd, &obs->ra, &obs->dec);
+       }
+    return( rval);
+}
+
 /* Loads up MPC-formatted 80-column observations from a file.  Makes
 a pass to find out how many observations there are,  allocates space
 for them,  then reads them again to actually load the observations. */
@@ -347,8 +364,6 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
                    && obs.jd < t_high
                    && (!_target_desig || strstr( buff, _target_desig)))
          {
-         char station_data[100];
-
          if( buff[14] == 's' || buff[14] == 'v')
             {                 /* satellite obs or roving observer */
             offset_t toff;
@@ -391,20 +406,14 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
             offsets = (offset_t *)realloc( offsets, n_offsets * sizeof( offset_t));
             offsets[n_offsets - 1] = toff;
             }
-         else if( !get_station_code_data( station_data, obs.text + 77))
+         else if( !set_observer_location( &obs))
             {
-            mpc_code_t code_data;
-
-            get_mpc_code_info( &code_data, station_data);
-            observer_cartesian_coords( obs.jd, code_data.lon,
-                  code_data.rho_cos_phi, code_data.rho_sin_phi, obs.observer_loc);
             if( count == n_allocated)
                {
                n_allocated += 10 + n_allocated / 2;
                rval = (OBSERVATION *)realloc( rval,
-                                    (n_allocated + 1) * sizeof( OBSERVATION));
+                               (n_allocated + 1) * sizeof( OBSERVATION));
                }
-            j2000_to_epoch_of_date( obs.jd, &obs.ra, &obs.dec);
             rval[count] = obs;
             count++;
             }
@@ -996,12 +1005,23 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                        && radius < max_expected_error
                        && i == obj_ptr->n_matches)
                   {
-                  const double dt = optr2->jd - optr1->jd;
+                  double dt = optr2->jd - optr1->jd;
+                  const double min_dt = 1e-6;   /* 0.0864 seconds */
                   double motion_diff, ra2, dec2;
                   double temp_array[8];
 
                   assert( dt >= 0.);
-                  compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
+                  if( !dt)
+                     {
+                     OBSERVATION temp_obs = *optr2;
+
+                     temp_obs.jd += min_dt;
+                     set_observer_location( &temp_obs);
+                     compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
+                              &temp_obs, &tle, sat_params);
+                     }
+                  else
+                     compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
                               optr2, &tle, sat_params);
                   temp_array[0] = ra;     /* starting point (computed) */
                   temp_array[1] = dec;
@@ -1065,24 +1085,28 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      strlcpy_error( obj_ptr->matches[i].text, obuff + 26);
 //                   snprintf_append( obuff, sizeof( obuff), " motion %f", motion_diff);
                      strlcat_error( obuff, "\n");
+                     if( !dt)
+                        strlcat_error( obuff,
+                              "             no observed motion (single obs) ");
+                     else
+                        snprintf_append( obuff, sizeof( obuff),
+                              "             motion %7.4f\"/sec at PA %5.1f;",
+                              motion_rate, motion_pa);
                      snprintf_append( obuff, sizeof( obuff),
-                        "             motion %7.4f\"/sec at PA %5.1f; dist=%8.1f km; offset=%7.4f deg\n",
-                            motion_rate, motion_pa,
-                            dist_to_satellite, radius);
+                                   " dist=%8.1f km; offset=%7.4f deg\n",
+                                   dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
                                   or in degrees/minute */
                      printf( "%s\n", optr1->text);
                      printf( "%s", obuff);
+                     motion_rate = angular_sep( ra - ra2, dec, dec2, &motion_pa);
+                     motion_rate *= arcminutes_per_radian;
                      if( dt)
-                        {
-                        motion_rate = angular_sep( ra - ra2, dec, dec2, &motion_pa);
-                        motion_rate *= arcminutes_per_radian;
-                        if( dt)
-                           motion_rate /= dt * minutes_per_day;
-                        printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n",
+                        motion_rate /= dt * minutes_per_day;
+                     else
+                        motion_rate /= min_dt * minutes_per_day;
+                     printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n",
                             motion_rate, motion_pa);
-                        }
-//                   printf( "             mismatch %5.2f\"\n", motion_diff);
                      printf( "\n");
                      }
                   }
