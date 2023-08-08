@@ -126,7 +126,8 @@ static double make_orthogonal_basis( const double *ivect,
    apparent total angular motion is returned               */
 
 static double compute_angular_rates( const double *obs_pos, const double *topo_posn,
-              const double *sat_vel, double *motion_pa)
+              const double *sat_vel, double *motion_pa,
+              double *ra_motion, double *dec_motion)
 {
    double vel[3];         /* velocity of sat relative to observer */
    double x_vect[3];    /* unit vector in equatorial plane perpendicular to topo_posn */
@@ -147,11 +148,14 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
    total_motion = hypot( xmotion, ymotion);
    *motion_pa = PI + atan2( xmotion, ymotion);
    *motion_pa *= 180. / PI;
+   *ra_motion = xmotion * (180. / PI) * 60.;
+   *dec_motion = ymotion * (180. / PI) * 60.;
    return( total_motion * (180. / PI) * 60.);      /* cvt to arcmin/min = arcsec/sec */
 }
 
 static char _header[200];
 static int motion_units = 1;     /* default to '/minute = degrees/hr = "/sec */
+static bool show_separate_motions = false;
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename, int start_line)
@@ -223,24 +227,25 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                const double t_since = (jd - tle.epoch) * minutes_per_day;
                double solar_xyzr[4], lunar_xyzr[4], topo_posn[3], elong;
                double motion_rate, motion_pa;
+               double ra_motion, dec_motion;
                const char *format_string;
 
                if( !i)
                   {
+                  char *tptr;
+
                   printf( "\nEphemerides for %05d = %s%.2s-%s\n",
                               tle.norad_number,
                               (atoi( tle.intl_desig) > 57000) ? "19" : "20",
                               tle.intl_desig, tle.intl_desig + 2);
                   snprintf( _header, sizeof( _header),
                           "%s\n%s", line0, (is_geocentric ? geo_header_text : header_text));
-                  strcat( _header, abs_mag ? "      Mag\n" : "\n");
+                  if( show_separate_motions)
+                     strcat( _header, "    RA \"/sec  dec");
                   if( motion_units == 60)
-                     {
-                     char *tptr = strstr( _header, "/sec ");
-
-                     assert( tptr);
-                     memcpy( tptr, "/min", 4);
-                     }
+                     while( NULL != (tptr = strstr( _header, "/sec ")))
+                        memcpy( tptr, "/min", 4);
+                  strcat( _header, abs_mag ? "      Mag\n" : "\n");
                   printf( "%s", _header);
                   }
                full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
@@ -258,7 +263,8 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                ra_buff[10] = dec_buff[9] = '\0';
                for( j = 0; j < 3; j++)
                   topo_posn[j] = pos[j] - obs_pos[j];
-               motion_rate = compute_angular_rates( obs_pos, topo_posn, vel, &motion_pa);
+               motion_rate = compute_angular_rates( obs_pos, topo_posn, vel, &motion_pa,
+                           &ra_motion, &dec_motion);
                lunar_solar_position( jd, lunar_xyzr, solar_xyzr);
                ecliptic_to_equatorial( solar_xyzr);
                ecliptic_to_equatorial( lunar_xyzr);
@@ -291,6 +297,14 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                else
                   format_string = "  %6.0f %6.1f";
                printf( format_string, motion_rate, motion_pa);
+               if( show_separate_motions)
+                  {
+                  const char precision = format_string[5];
+
+                  sprintf( buff, "  %%+7.%cf %%+7.%cf", precision, precision);
+                  printf( buff, ra_motion * (double)motion_units,
+                               dec_motion * (double)motion_units);
+                  }
                if( !abs_mag)
                   printf( "\n");
                else
@@ -530,6 +544,9 @@ int dummy_main( const int argc, const char **argv)
                      }
                   }
                break;
+            case 'S':
+               show_separate_motions = true;
+               break;
             case 'u':
                motion_units = 60;
                break;
@@ -669,6 +686,8 @@ int main( const int unused_argc, const char **unused_argv)
          strcpy( obs_code, buff);
       if( !strcmp( field, "round_step"))
          argv[argc++] = "-r";
+      if( !strcmp( field, "show_separate_motions"))
+         argv[argc++] = "-S";
       }
    fprintf( lock_file, "Fields read\n");
    argv[0] = "sat_eph";
