@@ -21,7 +21,7 @@
 # We have to use this trick from https://stackoverflow.com/a/42958970
 ifeq ($(origin CC),default)
 	CC=gcc
-	CPP=g++
+	CXX=g++
 endif
 EXE=
 RM=rm -f
@@ -41,14 +41,14 @@ LIB_DIR=$(INSTALL_DIR)/lib
 
 ifdef W64
 	CC=x86_64-w64-mingw32-gcc
-	CPP=x86_64-w64-mingw32-g++
+	CXX=x86_64-w64-mingw32-g++
 	EXE=.exe
 	LIB_DIR=$(INSTALL_DIR)/win_lib
 endif
 
 ifdef W32
 	CC=i686-w64-mingw32-gcc
-	CPP=i686-w64-mingw32-g++
+	CXX=i686-w64-mingw32-g++
 	EXE=.exe
 	LIB_DIR=$(INSTALL_DIR)/win_lib32
 endif
@@ -153,10 +153,10 @@ fix_tles$(EXE):	 fix_tles.o libsatell.a
 	$(CC) $(CFLAGS) -o fix_tles$(EXE) fix_tles.o libsatell.a -lm
 
 get_vect$(EXE):	 	get_vect.cpp	observe.o libsatell.a
-	$(CPP) $(CFLAGS) -o get_vect$(EXE) -I $(INCL) get_vect.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
+	$(CXX) $(CFLAGS) -o get_vect$(EXE) -I $(INCL) get_vect.cpp observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 line2$(EXE):	 	line2.cpp libsatell.a
-	$(CPP) $(CFLAGS) -o line2$(EXE) -I $(INCL) line2.cpp libsatell.a -lm -L $(LIB_DIR) -llunar
+	$(CXX) $(CFLAGS) -o line2$(EXE) -I $(INCL) line2.cpp libsatell.a -lm -L $(LIB_DIR) -llunar
 
 out_comp$(EXE):	 out_comp.o
 	$(CC) $(CFLAGS) -o out_comp$(EXE) out_comp.o -lm
@@ -172,10 +172,10 @@ sat_cgi$(EXE):	 	sat_eph.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o sat_cgi$(EXE) -I $(INCL) sat_eph.c observe.o -DON_LINE_VERSION libsatell.a -lm -L $(LIB_DIR) -llunar
 
 sat_id$(EXE):	 	sat_id.cpp sat_util.o	observe.o libsatell.a
-	$(CPP) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
+	$(CXX) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp sat_util.o observe.o libsatell.a
-	$(CPP) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
+	$(CXX) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
 
 summarize$(EXE):	 	summarize.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o summarize$(EXE) -I $(INCL) summarize.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
@@ -193,7 +193,7 @@ tle_date.cgi:	 	tle_date.c
 	$(CC) $(CFLAGS) -o tle_date.cgi  -I../include -DON_LINE_VERSION tle_date.c -L $(LIB_DIR) -llunar
 
 tle2mpc$(EXE):	 	tle2mpc.cpp libsatell.a
-	$(CPP) $(CFLAGS) -o tle2mpc$(EXE) -I $(INCL) tle2mpc.cpp libsatell.a -lm -L $(LIB_DIR) -llunar
+	$(CXX) $(CFLAGS) -o tle2mpc$(EXE) -I $(INCL) tle2mpc.cpp libsatell.a -lm -L $(LIB_DIR) -llunar
 
 test_des$(EXE):	 test_des.o libsatell.a
 	$(CC) $(CFLAGS) -o test_des$(EXE) test_des.o libsatell.a -lm
@@ -205,7 +205,7 @@ test_sat$(EXE):	 test_sat.o libsatell.a
 	$(CC) $(CFLAGS) -o test_sat$(EXE) test_sat.o libsatell.a -lm
 
 .cpp.o:
-	$(CPP) $(CFLAGS) -c $<
+	$(CXX) $(CFLAGS) -c $<
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
