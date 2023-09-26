@@ -301,7 +301,8 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                   {
                   const char precision = format_string[5];
 
-                  sprintf( buff, "  %%+7.%cf %%+7.%cf", precision, precision);
+                  snprintf( buff, sizeof( buff),
+                              "  %%+7.%cf %%+7.%cf", precision, precision);
                   printf( buff, ra_motion * (double)motion_units,
                                dec_motion * (double)motion_units);
                   }
