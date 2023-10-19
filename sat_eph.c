@@ -336,7 +336,7 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 
    snprintf( buff, sizeof( buff), "%s/%s", path_to_tles, tle_list_filename);
    if( verbose > 1)
-      printf( "Opening '%s'\n", buff);
+      printf( "Opening '%s', looking for '%s'\n", buff, e->desig);
    ifile = fopen( buff, "rb");
    if( !ifile)
       {
@@ -357,8 +357,18 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
             is_in_range = 1;
          }
       if( !memcmp( buff, "# ID:", 5))
+         {
+         if( buff[5] != ' ' || buff[11] != ' ' || buff[12] != ' ')
+            fprintf( stderr, "BAD LINE %s\n", buff);
+         for( int i = 6; i < 10; i++)
+            if( !isdigit( buff[i]) || !isdigit( buff[i + 7]))
+               {
+               printf( "BAD LINE (2) %s\n", buff);
+               i = 99;
+               }
          if( strcmp( e->desig, buff + 13) && atoi( buff + 5) != atoi( e->desig))
             id_matches = 0;
+         }
       if( !memcmp( buff, "# Include ", 10))
          {
          if( is_in_range && id_matches)
