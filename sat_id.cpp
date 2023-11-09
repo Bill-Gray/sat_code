@@ -141,10 +141,15 @@ typedef struct
 #define EARTH_MAJOR_AXIS    6378137.
 #define EARTH_MINOR_AXIS    6356752.
 
+/* For testing purposes,  I sometimes want _only_ "my" TLEs (not the
+   'classified' or Space-Watch TLEs) to be used.  This is invoked with -s. */
+static bool my_tles_only = false;
 
 #if !defined( ON_LINE_VERSION) && !defined( _WIN32)
-   #define REVERSE_VIDEO      "\033[0m\033[7m"
-   #define NORMAL_VIDEO       "\033[0m"
+   #define CSI "\x1b["
+   #define OSC "\x1b]"
+   #define REVERSE_VIDEO      CSI "0m" CSI "7m"
+   #define NORMAL_VIDEO       CSI "0m"
 #else
    #define REVERSE_VIDEO
    #define NORMAL_VIDEO
@@ -1099,6 +1104,11 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                                   or in degrees/minute */
                      printf( "%s\n", optr1->text);
                      printf( "%s", obuff);
+#ifdef SHOW_RA_DEC_OFFSETS
+                     printf( "dRA = %.3f  dDec = %.3f\n",
+                                    (ra - optr1->ra) * 180. / PI,
+                                    (dec - optr1->dec) * 180. / PI);
+#endif
                      motion_rate = angular_sep( ra - ra2, dec, dec2, &motion_pa);
                      motion_rate *= arcminutes_per_radian;
                      if( dt)
@@ -1186,6 +1196,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          {
          search_norad = 0;
          *search_intl = '\0';
+         if( my_tles_only)
+            break;
          }
       else if( !memcmp( line2, "# Range: ", 9))
          {
@@ -1388,6 +1400,9 @@ int main( const int argc, const char **argv)
             case 'O':
                output_astrometry_filename = param;
                output_only_matches = (argv[i][1] == 'o');
+               break;
+            case 's':
+               my_tles_only = true;
                break;
             case 't':
                tname = param;
