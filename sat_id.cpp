@@ -329,21 +329,44 @@ static bool offset_matches_obs( const offset_t *offset, const OBSERVATION *obs)
       return( false);
 }
 
+/* (XXX) locations are specified with text such as
+
+COM Long. 239 18 45 E, Lat. 33 54 11 N, Alt. 100m, Google Earth        */
+
+static char xxx_location[80];
+
 static int set_observer_location( OBSERVATION *obs)
 {
-   char station_data[100];
-   const int rval = get_station_code_data( station_data, obs->text + 77);
+   mpc_code_t code_data;
+   int rval;
 
+   if( memcmp( obs->text + 77, "XXX", 3))
+      {
+      char station_data[100];
+
+      rval = get_station_code_data( station_data, obs->text + 77);
+      if( !rval)
+         get_mpc_code_info( &code_data, station_data);
+      }
+   else
+      {
+      static bool first_time = true;
+
+      rval = get_xxx_location_info( &code_data, xxx_location);
+      if( rval && first_time)
+         printf( "WARNING: (XXX) observations won't be handled,  because the\n"
+               "observatory location was either missing or incorrectly formatted.\n"
+               "See https://www.projectpluto.com/xxx.htm for information on how\n"
+               "this line should be handled.\n");
+      first_time = false;
+      }
    if( !rval)
-       {
-       mpc_code_t code_data;
-
-       get_mpc_code_info( &code_data, station_data);
-       observer_cartesian_coords( obs->jd, code_data.lon,
-             code_data.rho_cos_phi, code_data.rho_sin_phi, obs->observer_loc);
-       j2000_to_epoch_of_date( obs->jd, &obs->ra, &obs->dec);
-       }
-    return( rval);
+      {
+      observer_cartesian_coords( obs->jd, code_data.lon,
+            code_data.rho_cos_phi, code_data.rho_sin_phi, obs->observer_loc);
+      j2000_to_epoch_of_date( obs->jd, &obs->ra, &obs->dec);
+      }
+   return( rval);
 }
 
 /* Loads up MPC-formatted 80-column observations from a file.  Makes
@@ -427,6 +450,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
          verbose = atoi( buff + 12) + 1;
       else if( !strcmp( buff, "COM check tles"))
          check_all_tles = true;
+      else if( !memcmp( buff, "COM Long.", 9))
+         strlcpy_error( xxx_location, buff);
       else if( !strcmp( buff, "COM ignore obs"))
          while( fgets_trimmed( buff, sizeof( buff), ifile))
             if( !strcmp( buff, "COM end ignore obs"))
