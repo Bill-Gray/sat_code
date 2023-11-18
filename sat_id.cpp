@@ -109,7 +109,7 @@ OBSERVATION
 
 typedef struct
 {
-   double dist;
+   double dist, ra, dec, motion_rate, motion_pa;
    int norad_number;
    char intl_desig[9];
    char text[54];
@@ -155,11 +155,18 @@ static bool my_tles_only = false;
    #define NORMAL_VIDEO
 #endif
 
+/* Sputnik 1 was launched on 1957 Oct 4.  There is no point in
+checking for satellites before that date. TLEs,  and therefore
+this program,  won't work after 2057 Jan 1. */
+
+const double oct_4_1957 = 2436115.5;
+const double jan_1_2057 = 2472364.5;
+
 static int get_mpc_data( OBSERVATION *obs, const char *buff)
 {
    obs->jd = extract_date_from_mpc_report( buff, NULL);
-   if( !obs->jd)           /* not an 80-column MPC record */
-      return( -1);
+   if( obs->jd < oct_4_1957 || obs->jd > jan_1_2057)
+      return( -1);            /* not an 80-column MPC record */
    if( get_ra_dec_from_mpc_report( buff, NULL, &obs->ra, NULL,
                                      NULL, &obs->dec, NULL))
       if( 's' != buff[14] && 'v' != buff[14])   /* satellite offsets and */
@@ -168,6 +175,49 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
    strncpy( obs->text, buff, sizeof( obs->text));
    obs->text[80] = '\0';
    return( 0);
+}
+
+/* If we encounter 'field' data -- we're determining which artsats
+are in a field,  not which ones match moving objects -- the output
+is very different : */
+
+static bool field_mode = false;
+
+/* An imaging field is specified as an image name,  date/time, RA and
+dec in decimal degrees,  and MPC obscode,  all comma-separated,  such as
+
+MyImage,2023 nov 17 03:14:15.9,271.818,-14.142,T05  */
+
+static int get_field_data( OBSERVATION *obs, const char *buff)
+{
+   int rval = -1;
+   size_t n_commas, loc[6], i;
+
+   for( i = n_commas = 0; buff[i] && n_commas < 5; i++)
+      if( buff[i] == ',')
+         loc[n_commas++] = i;
+   if( n_commas == 4 && strlen( buff) < 80)
+      {
+      char tbuff[80];
+
+      memcpy( tbuff, buff + loc[0] + 1, loc[1] - loc[0]);
+      tbuff[loc[1] - loc[0]] = '\0';      /* extract the time */
+      obs->jd = get_time_from_string( 0., tbuff, 0, NULL);
+      if( obs->jd > oct_4_1957 && obs->jd < jan_1_2057
+              && 2 == sscanf( buff + loc[1] + 1, "%lf,%lf",
+                                 &obs->ra, &obs->dec))
+         {
+         memcpy( obs->text, buff, loc[0]);
+         obs->text[loc[0]] = '\0';
+         obs->ra *= PI / 180.;
+         obs->dec *= PI / 180.;
+         memcpy( obs->text + 77, buff + loc[3] + 1, 3);
+         obs->text[80] = '\0';      /* copy over the three-character MPC code */
+         field_mode = true;
+         rval = 0;
+         }
+      }
+   return( rval);
 }
 
 /* This loads up the file 'ObsCodes.html' into memory on its first call.
@@ -388,8 +438,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
    assert( ades_context);
    memset( &obs, 0, sizeof( OBSERVATION));
    while( fgets_with_ades_xlation( buff, sizeof( buff), ades_context, ifile))
-      if( !get_mpc_data( &obs, buff) && obs.jd > t_low
-                   && obs.jd < t_high
+      if( (!get_mpc_data( &obs, buff) || !get_field_data( &obs, buff))
+                   && obs.jd > t_low && obs.jd < t_high
                    && (!_target_desig || strstr( buff, _target_desig)))
          {
          if( buff[14] == 's' || buff[14] == 'v')
@@ -1061,7 +1111,10 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                   temp_array[5] = optr1->dec;
                   temp_array[6] = optr2->ra;  /* ending point (observed) */
                   temp_array[7] = optr2->dec;
-                  motion_diff = relative_motion( temp_array);
+                  if( !dt)
+                     motion_diff = 0.;
+                  else
+                     motion_diff = relative_motion( temp_array);
                   motion_diff *= 3600. * 180. / PI;  /* cvt to arcseconds */
                   if( motion_diff < motion_mismatch_limit)
                      {
@@ -1127,22 +1180,29 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                                    dist_to_satellite, radius);
                               /* "Speed" is displayed in arcminutes/second,
                                   or in degrees/minute */
-                     printf( "%s\n", optr1->text);
-                     printf( "%s", obuff);
+                     if( verbose || !field_mode)
+                        {
+                        printf( "%s\n", optr1->text);
+                        printf( "%s", obuff);
 #ifdef SHOW_RA_DEC_OFFSETS
-                     printf( "dRA = %.3f  dDec = %.3f\n",
+                        printf( "dRA = %.3f  dDec = %.3f\n",
                                     (ra - optr1->ra) * 180. / PI,
                                     (dec - optr1->dec) * 180. / PI);
 #endif
+                        }
                      motion_rate = angular_sep( ra - ra2, dec, dec2, &motion_pa);
                      motion_rate *= arcminutes_per_radian;
                      if( dt)
                         motion_rate /= dt * minutes_per_day;
                      else
                         motion_rate /= min_dt * minutes_per_day;
-                     printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n",
+                     if( verbose || !field_mode)
+                        printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n\n",
                             motion_rate, motion_pa);
-                     printf( "\n");
+                     obj_ptr->matches[i].ra = ra;
+                     obj_ptr->matches[i].dec = dec;
+                     obj_ptr->matches[i].motion_rate = motion_rate;
+                     obj_ptr->matches[i].motion_pa = motion_pa;
                      }
                   }
                }
@@ -1368,8 +1428,8 @@ int main( const int argc, const char **argv)
             artsat.  We don't even bother to check those (unless the -z
             option is used to reset this limit).  */
    double speed_cutoff = 0.001;
-   double t_low = 2435839.5;  /* no satellites before 1957 Jan 1 */
-   double t_high = 3000000.5;
+   double t_low = oct_4_1957;
+   double t_high = jan_1_2057;
    int rval, i, j, prev_i;
    bool show_summary = false;
 
@@ -1493,13 +1553,14 @@ int main( const int argc, const char **argv)
    shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
 
    for( n_objects = i = 0; (size_t)i < n_obs; i++)
-      if( !i || id_compare( obs + i - 1, obs + i))
+      if( !i || id_compare( obs + i - 1, obs + i) || field_mode)
          n_objects++;
    objects = (object_t *)calloc( n_objects, sizeof( object_t));
    assert( objects);
-   printf( "%d objects\n", (int)n_objects);
+   if( !field_mode)
+      printf( "%d objects\n", (int)n_objects);
    for( n_objects = i = prev_i = 0; (size_t)i < n_obs; i++)
-      if( !i || id_compare( obs + i - 1, obs + i))
+      if( !i || id_compare( obs + i - 1, obs + i) || field_mode)
          {
          objects[n_objects].obs = obs + i;
          if( n_objects)
@@ -1520,7 +1581,10 @@ int main( const int argc, const char **argv)
          }
       }
    n_objects = j;
-   printf( "%u objects after removing slow ones\n", (unsigned)n_objects);
+   if( !field_mode)
+      printf( "%u objects after removing slow ones\n", (unsigned)n_objects);
+   else
+      max_revs_per_day = 20.;   /* for field-finding,  list everything */
    rval = add_tle_to_obs( objects, n_objects, tle_file_name, search_radius,
                                     max_revs_per_day);
    if( rval)
@@ -1551,6 +1615,31 @@ int main( const int argc, const char **argv)
       if( n_objects)
          printf( "\n%d matched of %d tracklets (%.1f%%)\n", n_matched, (int)n_objects,
                   (double)n_matched * 100. / (double)n_objects);
+      }
+   else if( field_mode)
+      {
+      size_t j;
+      const char *header =
+           "Field        RA  (J2000) dec  '/min   PA   NORAD Int'l desig Name";
+
+      printf( "%s", header);
+      for( i = 0; (size_t)i < n_objects; i++)
+         for( j = 0; j < objects[i].n_matches; j++)
+            {
+            double ra = objects[i].matches[j].ra;
+            double dec = objects[i].matches[j].dec;
+            char buff[30];
+
+            epoch_of_date_to_j2000( objects[i].obs->jd, &ra, &dec);
+            printf( "\n%-12.12s %7.3f %7.3f %7.2f %5.1f", objects[i].obs->text,
+                           ra * 180. / PI, dec * 180. / PI,
+                           objects[i].matches[j].motion_rate,
+                           objects[i].matches[j].motion_pa);
+            printf( " %05d %-11s", objects[i].matches[j].norad_number,
+                         unpack_intl( objects[i].matches[j].intl_desig, buff));
+            printf( "%s", strchr( objects[i].matches[j].text, ':') + 1);
+            }
+      printf( "\n%s", header);
       }
    if( output_astrometry_filename)
       {
