@@ -113,6 +113,7 @@ typedef struct
    int norad_number;
    char intl_desig[9];
    char text[54];
+   bool in_shadow;
 } match_t;
 
 typedef struct
@@ -779,9 +780,10 @@ Additional command-line arguments are:\n\
 
 static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
          const OBSERVATION *optr, tle_t *tle,
-         const double *sat_params)
+         const double *sat_params, bool *in_shadow)
 {
    double pos[3]; /* Satellite position vector */
+   double sun_xyzr[4], tval;
    double t_since = (optr->jd - tle->epoch) * minutes_per_day;
    const double j2000 = 2451545.;      /* JD 2451545 = 2000 Jan 1.5 */
    int sxpx_rval;
@@ -797,6 +799,25 @@ static int compute_artsat_ra_dec( double *ra, double *dec, double *dist,
       printf( "TLE failed for JD %f: %d\n", optr->jd, sxpx_rval);
    get_satellite_ra_dec_delta( optr->observer_loc, pos, ra, dec, dist);
    compute_aberration( (optr->jd - j2000) / 36525., ra, dec);
+   lunar_solar_position( optr->jd, NULL, sun_xyzr);
+   ecliptic_to_equatorial( sun_xyzr);
+   tval = dot_product( sun_xyzr, pos);
+   if( tval < 0. && in_shadow)    /* elongation greater than 90 degrees; */
+      {                           /* may be in earth's shadow */
+      double tvect[3], r2 = 0.;
+      const double earth_r = EARTH_MAJOR_AXIS / 1000.;   /* in km */
+      size_t i;
+
+      tval /= sun_xyzr[3] * sun_xyzr[3];
+      for( i = 0; i < 3; i++)
+         {
+         tvect[i] = pos[i] - sun_xyzr[i] * tval;
+         r2 += tvect[i] * tvect[i];
+         }
+      *in_shadow = (r2 < earth_r * earth_r);
+      }
+   else if( in_shadow)
+      *in_shadow = false;
    return( sxpx_rval);
 }
 
@@ -1073,9 +1094,10 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                double ra, dec, dist_to_satellite;
                int sxpx_rval;
                size_t i = 0;
+               bool in_shadow;
 
                sxpx_rval = compute_artsat_ra_dec( &ra, &dec, &dist_to_satellite,
-                              optr1, &tle, sat_params);
+                              optr1, &tle, sat_params, &in_shadow);
                radius = angular_sep( ra - optr1->ra, dec, optr1->dec, NULL) * 180. / PI;
                while( i < obj_ptr->n_matches
                        && obj_ptr->matches[i].norad_number != tle.norad_number
@@ -1098,11 +1120,11 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      temp_obs.jd += min_dt;
                      set_observer_location( &temp_obs);
                      compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
-                              &temp_obs, &tle, sat_params);
+                              &temp_obs, &tle, sat_params, NULL);
                      }
                   else
                      compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
-                              optr2, &tle, sat_params);
+                              optr2, &tle, sat_params, NULL);
                   temp_array[0] = ra;     /* starting point (computed) */
                   temp_array[1] = dec;
                   temp_array[2] = ra2;    /* ending point (computed) */
@@ -1203,6 +1225,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                      obj_ptr->matches[i].dec = dec;
                      obj_ptr->matches[i].motion_rate = motion_rate;
                      obj_ptr->matches[i].motion_pa = motion_pa;
+                     obj_ptr->matches[i].in_shadow = in_shadow;
                      }
                   }
                }
@@ -1635,7 +1658,9 @@ int main( const int argc, const char **argv)
                            ra * 180. / PI, dec * 180. / PI,
                            objects[i].matches[j].motion_rate,
                            objects[i].matches[j].motion_pa);
-            printf( " %05d %-11s", objects[i].matches[j].norad_number,
+            printf( " %c %05d %-11s",
+                         objects[i].matches[j].in_shadow ? '*' : ' ',
+                         objects[i].matches[j].norad_number,
                          unpack_intl( objects[i].matches[j].intl_desig, buff));
             printf( "%s", strchr( objects[i].matches[j].text, ':') + 1);
             }
