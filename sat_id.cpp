@@ -178,6 +178,22 @@ static int get_mpc_data( OBSERVATION *obs, const char *buff)
    return( 0);
 }
 
+static int extract_csv_value( char *obuff, const char *ibuff, int idx, size_t obuff_len)
+{
+   while( idx && *ibuff)
+      if( *ibuff++ == ',')
+         idx--;
+   if( !*ibuff)
+      return( -1);
+   if( *ibuff == '"')
+      ibuff++;
+   obuff_len--;
+   while( obuff_len-- && *ibuff && *ibuff != ',' && *ibuff != '"')
+      *obuff++ = *ibuff++;
+   *obuff = '\0';
+   return( 0);
+}
+
 /* If we encounter 'field' data -- we're determining which artsats
 are in a field,  not which ones match moving objects -- the output
 is very different : */
@@ -187,33 +203,44 @@ static bool field_mode = false;
 /* An imaging field is specified as an image name,  date/time, RA and
 dec in decimal degrees,  and MPC obscode,  all comma-separated,  such as
 
-MyImage,2023 nov 17 03:14:15.9,271.818,-14.142,T05  */
+MyImage,2023 nov 17 03:14:15.9,271.818,-14.142,T05
+"Another image",2023-11-17.314159,21 16 58.21,"+31 41 59.26","V00"
+
+In the first,  the RA and dec are in decimal degrees;  in the second,
+sexagesimal notation is used and the RA is assumed to be in hours,
+minutes,  and seconds.  You need the commas,  but can skip the
+quotation marks.     */
 
 static int get_field_data( OBSERVATION *obs, const char *buff)
 {
    int rval = -1;
-   size_t n_commas, loc[6], i;
+   size_t n_commas, i;
 
    for( i = n_commas = 0; buff[i] && n_commas < 5; i++)
       if( buff[i] == ',')
-         loc[n_commas++] = i;
+         n_commas++;
    if( n_commas == 4 && strlen( buff) < 80)
       {
       char tbuff[80];
+      int bytes_read;
 
-      memcpy( tbuff, buff + loc[0] + 1, loc[1] - loc[0]);
-      tbuff[loc[1] - loc[0]] = '\0';      /* extract the time */
+      extract_csv_value( tbuff, buff, 1, sizeof( tbuff));
       obs->jd = get_time_from_string( 0., tbuff, 0, NULL);
-      if( obs->jd > oct_4_1957 && obs->jd < jan_1_2057
-              && 2 == sscanf( buff + loc[1] + 1, "%lf,%lf",
-                                 &obs->ra, &obs->dec))
+      if( obs->jd > oct_4_1957 && obs->jd < jan_1_2057)
          {
-         memcpy( obs->text, buff, loc[0]);
-         obs->text[loc[0]] = '\0';
-         obs->ra *= PI / 180.;
-         obs->dec *= PI / 180.;
-         memcpy( obs->text + 77, buff + loc[3] + 1, 3);
-         obs->text[80] = '\0';      /* copy over the three-character MPC code */
+         extract_csv_value( tbuff, buff, 4, sizeof( tbuff));
+         if( strlen( tbuff) != 3)     /* MPC code must be three characters */
+            return( -1);
+         strcpy( obs->text + 77, tbuff);
+         extract_csv_value( tbuff, buff, 2, sizeof( tbuff));
+         obs->ra = get_ra_from_string( tbuff, &bytes_read);
+         if( bytes_read <= 0)
+            return( -1);
+         extract_csv_value( tbuff, buff, 3, sizeof( tbuff));
+         obs->dec = get_dec_from_string( tbuff, &bytes_read);
+         if( bytes_read <= 0)
+            return( -1);
+         extract_csv_value( obs->text, buff, 0, sizeof( obs->text));
          field_mode = true;
          rval = 0;
          }
