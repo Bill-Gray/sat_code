@@ -24,7 +24,7 @@ int sat_id_main( const int argc, const char **argv);
 int main( const int unused_argc, const char **unused_argv)
 {
    const char *argv[20];
-   const size_t max_buff_size = 40000;       /* room for 500 obs */
+   const size_t max_buff_size = 400000;       /* room for 5000 obs */
    char *buff = (char *)malloc( max_buff_size), *tptr;
    char field[30];
    const char *temp_obs_filename = "sat_obs.txt";
