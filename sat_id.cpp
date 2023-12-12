@@ -1642,26 +1642,36 @@ int main( const int argc, const char **argv)
    else if( show_summary)
       {
       int n_matched = 0;
+      size_t n_unmatched = 0;
 
       for( i = 0; (size_t)i < n_objects; i++)
-         {
-         char buff[30];
-         size_t j;
-
-         printf( "\n%.12s ", objects[i].obs->text);
-         for( j = 0; j < objects[i].n_matches; j++)
-            printf( " %05d %s", objects[i].matches[j].norad_number,
-                         unpack_intl( objects[i].matches[j].intl_desig, buff));
-         if( objects[i].n_matches == 1)
+         if( objects[i].n_matches)        /* first show those that were IDed */
             {
-            char *tptr = strchr( objects[i].matches[0].text, ':');
+            char buff[30];
+            size_t j;
 
-            assert( tptr);              /* if only one match,  output */
-            printf( " %s", tptr + 1);   /* the object name */
+            printf( "\n%.12s ", objects[i].obs->text);
+            for( j = 0; j < objects[i].n_matches; j++)
+               printf( " %05d %s", objects[i].matches[j].norad_number,
+                            unpack_intl( objects[i].matches[j].intl_desig, buff));
+            if( objects[i].n_matches == 1)
+               {
+               char *tptr = strchr( objects[i].matches[0].text, ':');
+
+               assert( tptr);              /* if only one match,  output */
+               printf( " %s", tptr + 1);   /* the object name */
+               }
+            if( objects[i].n_matches)
+               n_matched++;
             }
-         if( objects[i].n_matches)
-            n_matched++;
-         }
+      for( i = 0; (size_t)i < n_objects; i++)
+         if( !objects[i].n_matches)          /* now show those _not_ IDed */
+            {
+            if( !n_unmatched)
+               printf( "\nUnmatched objects :");
+            printf( "%s%.12s", (n_unmatched % 5 == 0 ? "\n" : ""), objects[i].obs->text);
+            n_unmatched++;
+            }
       if( n_objects)
          printf( "\n%d matched of %d tracklets (%.1f%%)\n", n_matched, (int)n_objects,
                   (double)n_matched * 100. / (double)n_objects);
