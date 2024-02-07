@@ -1,7 +1,7 @@
 /* Copyright (C) 2021, Project Pluto.  See LICENSE.  */
 /* Code to test Alpha-5 and 'extended' Alpha-5 (Super-5) designation
-schemes.  These enable us to have NORAD numbers up to 34^5-1
-= 45435423 while still fitting requirements of the current TLE
+schemes.  These enable us to have nine-digit NORAD numbers
+while still fitting (most of the) requirements of the current TLE
 format.  See comments about the Alpha-5 and Super-5 schemes in
 'get_el.cpp'.
 
@@ -16,6 +16,7 @@ code verifies that. */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <math.h>
 #include "norad.h"
 
@@ -24,6 +25,7 @@ int main( const int argc, const char **argv)
    char buff[160], *line1 = buff, line2[80];
    int n;
    tle_t tle;
+   const int one_billion = 1000000000;
 
    strcpy( line1,
       "1 00005U 58002B   21124.86416743 -.00000116  00000-0 -00000-0 0  9998");
@@ -32,22 +34,20 @@ int main( const int argc, const char **argv)
    parse_elements( line1, line2, &tle);
    if( argc > 1)
       {
-      tle.norad_number = atoi( argv[1]);
+      n = tle.norad_number = atoi( argv[1]);
       write_elements_in_tle_format( buff, &tle);
       printf( "Super-5 version : '%.5s'\n", buff + 2);
+      parse_elements( line1, line2, &tle);
+      printf( "Got back NORAD %d\n", tle.norad_number);
+      assert( n == tle.norad_number);
       return( 0);
       }
 
-   printf( "Testing all Super-5 designations.  This should take a minute or two.\n");
-   for( n = 0; n < 34 * 34 * 34 * 34 * 34 + 2; n++)
+   printf( "Testing all Super-5 designations.  This should take an hour or two.\n");
+   for( n = 0; n < one_billion + 2; n++)
       {
-      char prev_des[6];
-
-      memcpy( prev_des, buff + 2, 5);
       tle.norad_number = n;
       write_elements_in_tle_format( buff, &tle);
-      if( memcmp( prev_des, buff + 2, 5) >= 0)
-         printf( "Disorder at %d\n%s\n", n, buff);
       parse_elements( line1, line2, &tle);
       if( tle.norad_number != n)
          printf( "Got back NORAD %d (should be %d)\n%s\n",
