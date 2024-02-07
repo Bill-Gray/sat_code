@@ -190,6 +190,7 @@ static void store_norad_number_in_alpha5( char *obuff, const int norad_number)
       for( i = 2; i >= 0; i--, tval >>= 6)
          obuff[i] = int_to_base64( tval & 0x3f);
       }
+   obuff[5] = '\0';
 }
 
 /* SpaceTrack TLEs have,  on the second line,  leading zeroes in front of the
