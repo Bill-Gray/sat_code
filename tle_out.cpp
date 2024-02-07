@@ -30,7 +30,7 @@ static int add_tle_checksum_data( char *buff)
       return( 0);    /* not a .TLE */
    while( --count)
       {
-      if( *buff < ' ' || *buff > 'Z')
+      if( *buff < ' ' || *buff > 'z')
          return( 0);             /* wups!  those shouldn't happen in .TLEs */
       if( *buff > '0' && *buff <= '9')
          rval += *buff - '0';
@@ -134,66 +134,62 @@ performs the reverse function of setting the five bytes corresponding
 to a NORAD number,  using the 'standard' Alpha-5 method for numbers
 0 to 339000 and the nonstandard Super-5 method beyond that. */
 
-static char int_to_base_34( const int digit)
+static char int_to_base64( const int digit)
 {
    int rval;
 
-   assert( digit >= 0 && digit < 34);
-   if( digit < 0 || digit >= 34)
+   assert( digit >= 0 && digit < 64);
+   if( digit < 0 || digit >= 64)
       rval = ' ';
    else if( digit < 10)
       rval = '0' + digit;
-   else
-      {
+   else if( digit < 36)
       rval = 'A' + digit - 10;
-      if( digit >= 18)      /* J-N: skip I */
-         rval++;
-      if( digit >= 23)      /* P-Z : skip O */
-         rval++;
-      }
+   else if( digit < 62)
+      rval = 'a' + digit - 36;
+   else
+      rval = (digit == 62 ? '+' : '-');
    return( rval);
 }
 
-static void fix_digits( char *obuff, int number, const int n1, const int n2,
-             const int n3, const int n4, const int n5)
-{
-   int digits[5], i;
-
-   digits[0] = n1;
-   digits[1] = n2;
-   digits[2] = n3;
-   digits[3] = n4;
-   digits[4] = n5;
-   for( i = 4; i >= 0; i--)
-      {
-      obuff[i] = int_to_base_34( (number % digits[i]) + (digits[i] == 24 ? 10 : 0));
-      number /= digits[i];
-      }
-   obuff[5] = '\0';
-}
-
-
 static void store_norad_number_in_alpha5( char *obuff, const int norad_number)
 {
-   const int N_TYPE_1_2 = 340000;         /* five digits plus Alpha-5 */
-   const int N_TYPE_3 = 34 * 34 * 34 * 34 * 24;       /* xxxxL */
-   const int N_TYPE_4 = 34 * 34 * 34 * 24 * 10;       /* xxxLd */
-   const int N_TYPE_5 = 34 * 34 * 24 * 10 * 10;       /* xxLdd */
+   const int N_TYPE_STANDARD = 340000;         /* five digits plus Alpha-5 */
+   const int N_TYPE_2 = 64 * 64 * 64 * 64 * 54;       /* xxxxL */
+/* const int N_TYPE_3 = 64 * 64 * 64 * 54 * 10;          xxxLd;  we don't actually use this */
+   const int one_billion = 1000000000;
+   int i, tval = norad_number;
 
-   if( norad_number < 0 || norad_number >= 34 * 34 * 34 * 34 * 34)
+   assert( norad_number >= 0 && norad_number < one_billion);
+   if( norad_number < 0 || norad_number >= one_billion)
       strcpy( obuff, "     ");      /* outside representable range */
-   else if( norad_number < N_TYPE_1_2)
-      fix_digits( obuff, norad_number,              34, 10, 10, 10, 10);
-   else if( norad_number < N_TYPE_1_2 + N_TYPE_3)
-      fix_digits( obuff, norad_number - N_TYPE_1_2, 34, 34, 34, 34, 24);
-   else if( norad_number < N_TYPE_1_2 + N_TYPE_3 + N_TYPE_4)
-      fix_digits( obuff, norad_number - N_TYPE_1_2 - N_TYPE_3, 34, 34, 34, 24, 10);
-   else if( norad_number < N_TYPE_1_2 + N_TYPE_3 + N_TYPE_4 + N_TYPE_5)
-      fix_digits( obuff, norad_number - N_TYPE_1_2 - N_TYPE_3 - N_TYPE_4,
-                                     34, 34, 24, 10, 10);
+   else if( norad_number < N_TYPE_STANDARD)
+      {
+      for( i = 4; i > 0; i--, tval /= 10)
+         obuff[i] = '0' + (tval % 10);
+      *obuff = int_to_base64( tval);
+      if( *obuff >= 'I')
+         (*obuff)++;
+      if( *obuff >= 'O')
+         (*obuff)++;
+      }
+   else if( norad_number < N_TYPE_STANDARD + N_TYPE_2)
+      {
+      tval -= N_TYPE_STANDARD;
+      obuff[4] = int_to_base64( tval % 54 + 10);
+      tval /= 54;
+      for( i = 3; i >= 0; i--, tval >>= 6)
+         obuff[i] = int_to_base64( tval & 0x3f);
+      }
    else
-      fix_digits( obuff, norad_number - N_TYPE_1_2 - N_TYPE_3 - N_TYPE_4 - N_TYPE_5,
-                                     34, 24, 10, 10, 10);
+      {
+      tval -= N_TYPE_STANDARD + N_TYPE_2;
+      obuff[4] = int_to_base64( tval % 10);
+      obuff[3] = int_to_base64( (tval / 10) % 54 + 10);
+      tval /= 540;
+      for( i = 2; i >= 0; i--, tval >>= 6)
+         obuff[i] = int_to_base64( tval & 0x3f);
+      }
 }
 
 /* SpaceTrack TLEs have,  on the second line,  leading zeroes in front of the
