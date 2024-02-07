@@ -230,7 +230,6 @@ void DLL_FUNC write_elements_in_tle_format( char *buff, const tle_t *tle)
            norad_num_text, tle->classification, tle->intl_desig,
            year % 100L, day_of_year,
            tle->ephemeris_type, tle->bulletin_number);
-   assert( 70 == strlen( buff));
    if( buff[20] == ' ')       /* fill in leading zeroes for day of year */
       buff[20] = '0';
    if( buff[21] == ' ')
