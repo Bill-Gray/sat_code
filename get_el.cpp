@@ -244,7 +244,7 @@ static int get_norad_number( const char *buff)
    else        /* last four digits are 0-9;  'standard' NORAD desig */
       {
       for( i = 1; i <= 4; i++)
-         assert( buff[i] >= '0' && buff[i] <= '9');
+         assert( (buff[i] >= '0' && buff[i] <= '9') || buff[i] == ' ');
       if( *buff > 'I')
          {
          digits[0]--;
