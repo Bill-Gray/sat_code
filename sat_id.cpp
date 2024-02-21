@@ -1044,7 +1044,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
              const double max_revs_per_day)
 {
    char line0[100], line1[100], line2[100];
-   FILE *tle_file = fopen( tle_file_name, "rb");
+   FILE *tle_file;
    int rval = 0, n_tles_found = 0;
    bool check_updates = true;
    bool look_for_tles = true;
@@ -1053,6 +1053,14 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    static int *norad_ids = NULL;
    static size_t n_norad_ids = 0;
 
+   if( !tle_file_name)     /* flag to free internal memory at shutdown */
+      {
+      if( norad_ids)
+         free( norad_ids);
+      n_norad_ids = 0;
+      return( 0);
+      }
+   tle_file = fopen( tle_file_name, "rb");
    if( !tle_file)
       {
 #ifdef ON_LINE_VERSION
@@ -1759,6 +1767,7 @@ int main( const int argc, const char **argv)
          free( objects[i].matches);
    free( objects);
    get_station_code_data( NULL, NULL);
+   add_tle_to_obs( NULL, 0, NULL, 0., 0.);
    printf( "\n%.1f seconds elapsed\n", (double)clock( ) / (double)CLOCKS_PER_SEC);
    return( rval);
 }     /* End of main() */
