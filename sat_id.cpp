@@ -141,6 +141,7 @@ typedef struct
 #define TIME_EPSILON (1./86400.)
 #define EARTH_MAJOR_AXIS    6378137.
 #define EARTH_MINOR_AXIS    6356752.
+#define is_power_of_two( X)   (!((X) & ((X) - 1)))
 
 /* For testing purposes,  I sometimes want _only_ "my" TLEs (not the
    'classified' or Space-Watch TLEs) to be used.  This is invoked with -s. */
@@ -1049,7 +1050,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    bool look_for_tles = true;
    static bool error_check_date_ranges = true;
    const clock_t time_started = clock( );
-   static int norad_ids[200];
+   static int *norad_ids = NULL;
    static size_t n_norad_ids = 0;
 
    if( !tle_file)
@@ -1372,7 +1373,10 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                i++;
             if( i == n_norad_ids || search_norad != norad_ids[i])
                {                           /* insert newly-found ID */
-               assert( n_norad_ids < sizeof( norad_ids) / sizeof( norad_ids[0]));
+               if( !n_norad_ids)
+                  norad_ids = (int *)malloc( sizeof( int));
+               else if( is_power_of_two( n_norad_ids))
+                  norad_ids = (int *)realloc( norad_ids, 2 * n_norad_ids * sizeof( int));
                memmove( norad_ids + i + 1, norad_ids + i, (n_norad_ids - i) * sizeof( int));
                norad_ids[i] = search_norad;
                n_norad_ids++;
