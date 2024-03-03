@@ -320,6 +320,16 @@ int DLL_FUNC parse_elements( const char *line1, const char *line2, tle_t *sat)
       sat->bulletin_number = atoi( tbuff);
       sat->classification = line1[7];       /* almost always 'U' */
       memcpy( sat->intl_desig, line1 + 9, 8);
+      if( !memcmp( sat->intl_desig, "     ", 5))
+         {  /* usually 'analyst' object w/o international (COSPAR) desig; */
+         int i, n = sat->norad_number;      /* set launch 000,  year/part */
+                                            /* data mapped from NORAD #   */
+         for( i = 7; i > 4; i--, n /= 26)
+            sat->intl_desig[i] = 'A' + n % 26;
+         sat->intl_desig[2] = sat->intl_desig[3] = sat->intl_desig[4] = '0';
+         sat->intl_desig[1] = '0' + n % 10;
+         sat->intl_desig[0] = '0' + n / 10;
+         }
       sat->intl_desig[8] = '\0';
       memcpy( tbuff, line2 + 63, 5);
       tbuff[5] = '\0';
