@@ -117,6 +117,14 @@ int tle_compare( const TLE *tle1, const TLE *tle2, const char sort_method)
          for( i = 2; !rval && i < 8; i++)
             rval = tle1->line1[i] - tle2->line1[i];
          break;
+      case 'c': case 'C':        /* sort by COSPAR (international) desig */
+         if( tle1->line1[9] >= '5' && tle2->line1[9] < '5')
+            rval = -1;
+         else if( tle2->line1[9] >= '5' && tle1->line1[9] < '5')
+            rval = 1;
+         else        /* COSPAR IDs are from the same century */
+            rval = memcmp( tle1->line1 + 9, tle2->line1 + 9, 8);
+         break;
       case 'm': case 'M':        /* sort by mean motion */
          rval = compare_doubles( tle1->line2 + 52, tle2->line2 + 52);
          break;
@@ -180,6 +188,7 @@ static void error_exit( void)
    printf( "in more than one .tle,  the .tle from the first file on the command\n");
    printf( "line is used.  Options are:\n\n");
    printf( "-sn, -sN       Sort output by ascending/descending NORAD number\n");
+   printf( "-sc, -sC       Sort output by ascending/descending COSPAR desig\n");
    printf( "-sm, -sM       Sort output by ascending/descending mean motion\n");
    printf( "-se, -sE       Sort output by ascending/descending eccentricity\n");
    printf( "-sp, -sP       Sort output by ascending/descending epoch\n");
