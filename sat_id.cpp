@@ -1493,7 +1493,7 @@ int main( const int argc, const char **argv)
    double t_low = oct_4_1957;
    double t_high = jan_1_2057;
    int rval, i, j, prev_i;
-   bool show_summary = false;
+   bool show_summary = false, add_new_line = false;
 
    if( argc == 1)
       {
@@ -1542,6 +1542,9 @@ int main( const int argc, const char **argv)
                break;
             case 'n':
                norad_id = atoi( param);
+               break;
+            case 'N':
+               add_new_line = true;
                break;
             case 'o':
             case 'O':
@@ -1743,11 +1746,24 @@ int main( const int argc, const char **argv)
                      if( objects[i].n_matches > 0
                              && objects[i].matches[0].norad_number > 0)
                         {
+                        const char *common_name =
+                                 strchr( objects[i].matches[0].text, ':') + 1;
+
                         was_matched = true;
-                        fprintf( ofile, "COM %05dU = %s   %s\n",
-                            objects[i].matches[0].norad_number,
-                            unpack_intl( objects[i].matches[0].intl_desig, tbuff),
-                            strchr( objects[i].matches[0].text, ':') + 1);
+                        unpack_intl( objects[i].matches[0].intl_desig, tbuff);
+                        if( add_new_line)
+                           if( !memcmp( tbuff + 5, "999", 3) || !memcmp( tbuff + 5, "000", 3))
+                              {
+                              fprintf( ofile, "\nCOM =%s   %05dU = %s\n",
+                                           common_name, objects[i].matches[0].norad_number,
+                                           tbuff);
+                              *tbuff = '\0';
+                              }
+                        if( *tbuff)
+                           fprintf( ofile, "%sCOM %05dU = %s   %s\n",
+                               (add_new_line ? "\n" : ""),
+                               objects[i].matches[0].norad_number,
+                               tbuff, common_name);
                         objects[i].matches[0].norad_number = -1;
                         }
                      }
