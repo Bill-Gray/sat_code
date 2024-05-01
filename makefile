@@ -189,7 +189,7 @@ test2$(EXE):	 	test2.o sgp.o libsatell.a
 	$(CC) $(CFLAGS) -o test2$(EXE) test2.o sgp.o libsatell.a -lm
 
 tle_date$(EXE):	 	tle_date.o
-	$(CC) $(CFLAGS) -o tle_date$(EXE) tle_date.o -L $(LIB_DIR) -llunar
+	$(CC) $(CFLAGS) -o tle_date$(EXE) tle_date.o -L $(LIB_DIR) -llunar -lm
 
 tle_date.o: tle_date.c
 	$(CC) $(CFLAGS) -o tle_date.o -c -I../include tle_date.c
