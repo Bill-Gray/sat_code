@@ -156,6 +156,8 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
 static char _header[200];
 static int motion_units = 1;     /* default to '/minute = degrees/hr = "/sec */
 static bool show_separate_motions = false;
+static bool output_state_vectors = false;
+static bool output_mjd = false;
 
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename, int start_line)
@@ -246,9 +248,16 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                      while( NULL != (tptr = strstr( _header, "/sec ")))
                         memcpy( tptr, "/min", 4);
                   strcat( _header, abs_mag ? "      Mag\n" : "\n");
+                  if( output_state_vectors)
+                     strcpy( _header, "Date (UTC)  Time"
+                               "          x            y            z"
+                               "          vx           vy           vz\n");
                   printf( "%s", _header);
                   }
-               full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
+               if( output_mjd)
+                  snprintf( buff, sizeof( buff), "%.5f", jd - 2400000.5);
+               else
+                  full_ctime( buff, jd, FULL_CTIME_YMD | FULL_CTIME_MONTHS_AS_DIGITS
                                  | FULL_CTIME_LEADING_ZEROES);
                if( is_deep_type)
                   SDP4( t_since, &tle, sat_params, pos, vel);
@@ -258,6 +267,18 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                         e->rho_sin_phi, obs_pos);
                get_satellite_ra_dec_delta( obs_pos, pos, &ra, &dec, &dist);
                epoch_of_date_to_j2000( jd, &ra, &dec);
+               if( output_state_vectors)
+                  {
+                  const double year = 2000. + (jd - 2451545.) / 365.25;
+                  double matrix[9];
+
+                  setup_precession( matrix, year, 2000.);
+                  precess_vector( matrix, pos, pos);
+                  precess_vector( matrix, vel, vel);
+                  printf( "%s %14.5f%14.5f%14.5f%11.5f%11.5f%11.5f\n",
+                              buff, pos[0], pos[1], pos[2],
+                              vel[0] / 60., vel[1] / 60., vel[2] / 60.);
+                  }
                put_ra_in_buff( ra_buff, ra);
                put_dec_in_buff( dec_buff, dec);
                ra_buff[10] = dec_buff[9] = '\0';
@@ -283,38 +304,42 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                else
                   *alt_buff = '\0';
                elong = angle_between( topo_posn, solar_xyzr);
-               printf( "%s  %s  %s%s %6.1f %6.1f %8.0f", buff, ra_buff, dec_buff,
+               if( !output_state_vectors)
+                  {
+                  printf( "%s  %s  %s%s %6.1f %6.1f %8.0f", buff, ra_buff, dec_buff,
                      alt_buff, elong, angle_between( topo_posn, lunar_xyzr), dist);
-               motion_rate *= (double)motion_units;
-               if( motion_rate < 9.999)
-                  format_string = "  %6.4f %6.1f";
-               else if( motion_rate < 99.99)
-                  format_string = "  %6.3f %6.1f";
-               else if( motion_rate < 999.9)
-                  format_string = "  %6.2f %6.1f";
-               else if( motion_rate < 9999.)
-                  format_string = "  %6.1f %6.1f";
-               else
-                  format_string = "  %6.0f %6.1f";
-               printf( format_string, motion_rate, motion_pa);
-               if( show_separate_motions)
-                  {
-                  const char precision = format_string[5];
+                  motion_rate *= (double)motion_units;
+                  if( motion_rate < 9.999)
+                     format_string = "  %6.4f %6.1f";
+                  else if( motion_rate < 99.99)
+                     format_string = "  %6.3f %6.1f";
+                  else if( motion_rate < 999.9)
+                     format_string = "  %6.2f %6.1f";
+                  else if( motion_rate < 9999.)
+                     format_string = "  %6.1f %6.1f";
+                  else
+                     format_string = "  %6.0f %6.1f";
+                  printf( format_string, motion_rate, motion_pa);
+                  if( show_separate_motions)
+                     {
+                     const char precision = format_string[5];
 
-                  snprintf( buff, sizeof( buff),
-                              "  %%+7.%cf %%+7.%cf", precision, precision);
-                  printf( buff, ra_motion * (double)motion_units,
-                               dec_motion * (double)motion_units);
-                  }
-               if( !abs_mag)
-                  printf( "\n");
-               else
-                  {
-                  const double phase_ang = (180. - elong) * (PI / 180.);
-                  double mag = abs_mag + 5. * log10( dist / AU_IN_KM)
-                           + phase_angle_correction_to_magnitude(
-                                    phase_ang, 0.15);
-                  printf( "%8.1f\n", mag);
+                     snprintf( buff, sizeof( buff),
+                                 "  %%+7.%cf %%+7.%cf", precision, precision);
+                     printf( buff, ra_motion * (double)motion_units,
+                                  dec_motion * (double)motion_units);
+                     }
+
+                  if( !abs_mag)
+                     printf( "\n");
+                  else
+                     {
+                     const double phase_ang = (180. - elong) * (PI / 180.);
+                     double mag = abs_mag + 5. * log10( dist / AU_IN_KM)
+                              + phase_angle_correction_to_magnitude(
+                                       phase_ang, 0.15);
+                     printf( "%8.1f\n", mag);
+                     }
                   }
                start_line = (int)i + 1;
                }
@@ -490,6 +515,8 @@ static void error_help( void)
            "   -o(#) : five digit NORAD number or YYNNNA international designation\n"
            "   -r    : do _not_ round times to nearest step size\n"
            "   -u    : show motions in \"/min = degrees/hr (default is \"/sec)\n"
+           "   -m    : show times as MJD\n"
+           "   -V    : output state vectors instead of observables\n"
            "   -v(#) : level of verbosity\n");
 }
 
@@ -529,6 +556,9 @@ int dummy_main( const int argc, const char **argv)
             case 't':
                e.jd_start = get_time_from_string( e.jd_start, arg, FULL_CTIME_YMD, NULL);
                break;
+            case 'm':
+               output_mjd = true;
+               break;
             case 'n':
                e.n_steps = atoi( arg);
                break;
@@ -566,6 +596,9 @@ int dummy_main( const int argc, const char **argv)
                break;
             case 'v':
                verbose = 1 + atoi( arg);
+               break;
+            case 'V':
+               output_state_vectors = 1;
                break;
             default:
                fprintf( stderr, "Unrecognized option '%s'\n", argv[i]);
@@ -627,6 +660,7 @@ int main( const int unused_argc, const char **unused_argv)
    char num_steps[30], step_size[30], obs_code[40];
    FILE *lock_file = fopen( "lock.txt", "w");
    int cgi_status, i, argc = 9;
+   bool round_step = false;
 #ifndef _WIN32
    extern char **environ;
 
@@ -696,11 +730,17 @@ int main( const int unused_argc, const char **unused_argv)
       if( !strcmp( field, "obs_code") && strlen( buff) < sizeof( obs_code))
          strcpy( obs_code, buff);
       if( !strcmp( field, "round_step"))
-         argv[argc++] = "-r";
+         round_step = true;
+      if( !strcmp( field, "vectors"))
+         output_state_vectors = true;
+      if( !strcmp( field, "mjd"))
+         output_mjd = true;
       if( !strcmp( field, "show_separate_motions"))
          argv[argc++] = "-S";
       }
    fprintf( lock_file, "Fields read\n");
+   if( !round_step)
+      argv[argc++] = "-r";
    argv[0] = "sat_eph";
    argv[1] = "-t";
    argv[2] = time_text;
