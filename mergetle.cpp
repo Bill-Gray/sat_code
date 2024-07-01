@@ -114,8 +114,7 @@ int tle_compare( const TLE *tle1, const TLE *tle2, const char sort_method)
    switch( sort_method)
       {
       case 'n': case 'N':        /* sort by NORAD number */
-         for( i = 2; !rval && i < 8; i++)
-            rval = tle1->line1[i] - tle2->line1[i];
+         rval = atoi( tle1->line1 + 2) - atoi( tle2->line1 + 2);
          break;
       case 'c': case 'C':        /* sort by COSPAR (international) desig */
          if( tle1->line1[9] >= '5' && tle2->line1[9] < '5')
