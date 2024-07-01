@@ -23,6 +23,12 @@ ifeq ($(origin CC),default)
 	CC=gcc
 	CXX=g++
 endif
+
+ifeq ($(shell uname -s),FreeBSD)
+	CC=cc
+	CXX=c++
+endif
+
 EXE=
 RM=rm -f
 
@@ -73,7 +79,7 @@ all: dropouts$(EXE) fake_ast$(EXE) fix_tles$(EXE) get_high$(EXE) \
 	sat_id2$(EXE) sat_id3$(EXE) summarize$(EXE) \
 	test_des$(EXE) test_out$(EXE) test_sat$(EXE) test2$(EXE) tle2mpc$(EXE)
 
-CFLAGS+=-Wextra -Wall -O3 -pedantic -Werror
+CFLAGS+=-Wextra -Wall -O3 -pedantic -Wshadow
 
 ifdef UCHAR
 	CFLAGS += -funsigned-char
@@ -82,6 +88,11 @@ endif
 ifdef DEBUG
 	CFLAGS += -g
 endif
+
+ifndef NO_ERRORS
+	CFLAGS += -Werror
+endif
+
 
 clean:
 	$(RM) *.o
