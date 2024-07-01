@@ -706,12 +706,14 @@ void Deep_dpper( const tle_t *tle, deep_arg_t *deep_arg)
    deep_arg->xll += deep_arg->pl;
    deep_arg->omgadf += deep_arg->pgh;
    if( tle->xincl >= 0.2)
-      {
-             /* Apply periodics directly */
-      const double sinis = sin(deep_arg->xinc);
-      const double cosis = cos(deep_arg->xinc);
-      const double temp_val = deep_arg->ph / sinis;
+      {             /* Apply periodics directly */
+      double temp_val;
 
+#ifdef SPACETRACK_3
+      sinis = sin(deep_arg->xinc);
+      cosis = cos(deep_arg->xinc);
+#endif
+      temp_val = deep_arg->ph / sinis;
       deep_arg->omgadf -= cosis * temp_val;
       deep_arg->xnode += temp_val;
       }

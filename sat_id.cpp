@@ -1663,10 +1663,9 @@ int main( const int argc, const char **argv)
          if( objects[i].n_matches)        /* first show those that were IDed */
             {
             char buff[30];
-            size_t j;
 
             printf( "\n%.12s ", objects[i].obs->text);
-            for( j = 0; j < objects[i].n_matches; j++)
+            for( j = 0; j < (int)objects[i].n_matches; j++)
                printf( " %05d %s", objects[i].matches[j].norad_number,
                             unpack_intl( objects[i].matches[j].intl_desig, buff));
             if( objects[i].n_matches == 1)
@@ -1693,13 +1692,12 @@ int main( const int argc, const char **argv)
       }
    else if( field_mode)
       {
-      size_t j;
       const char *header =
            "Field        RA  (J2000) dec  '/min   PA   NORAD Int'l desig Name";
 
       printf( "%s", header);
       for( i = 0; (size_t)i < n_objects; i++)
-         for( j = 0; j < objects[i].n_matches; j++)
+         for( j = 0; j < (int)objects[i].n_matches; j++)
             {
             double ra = objects[i].matches[j].ra;
             double dec = objects[i].matches[j].dec;

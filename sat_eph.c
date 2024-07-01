@@ -680,7 +680,7 @@ int main( const int unused_argc, const char **unused_argv)
    fprintf( lock_file, "We're in\n");
    *time_text = *num_steps = *step_size = *obs_code = '\0';
 #ifndef _WIN32
-   for( size_t i = 0; environ[i]; i++)
+   for( i = 0; environ[i]; i++)
       fprintf( lock_file, "%s\n", environ[i]);
 #endif
    cgi_status = initialize_cgi_reading( );
