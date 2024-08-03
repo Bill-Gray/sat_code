@@ -1052,6 +1052,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    const clock_t time_started = clock( );
    static int *norad_ids = NULL;
    static size_t n_norad_ids = 0;
+   const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
+   const double curr_mjd = mjd_1970 + (double)time( NULL) / 86400.;
 
    if( !tle_file_name)     /* flag to free internal memory at shutdown */
       {
@@ -1277,9 +1279,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          error_check_date_ranges = (line2[14] != '0');
       else if( !strncmp( line2, "# Ephem range:", 14))
          {
-         const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
          double mjd_start, mjd_end, tle_step;
-         double curr_mjd = mjd_1970 + (double)time( NULL) / 86400.;
          int n_read;
 
          n_read = sscanf( line2 + 14, "%lf %lf %lf\n", &mjd_start, &mjd_end, &tle_step);
@@ -1396,6 +1396,18 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          tle_start = 0.;
          tle_range = 1e+9;
          look_for_tles = true;
+         }
+      else if( !memcmp( line2, "# Warn ", 7))
+         {
+         char *tptr = strchr( line2, '|');
+         double jd_warn;
+
+         assert( tptr);
+         *tptr = '\0';
+         jd_warn = get_time_from_string( 0, line2 + 7, FULL_CTIME_YMD, NULL);
+         if( jd_warn < curr_mjd + 2400000.5 + lookahead_warning_days)
+            fprintf( stderr, REVERSE_VIDEO "WARNING: %s" NORMAL_VIDEO "\n",
+                           tptr + 1);
          }
       strlcpy_error( line0, line1);
       strlcpy_error( line1, line2);
