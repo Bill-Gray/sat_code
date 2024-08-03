@@ -29,12 +29,12 @@ int main( const int unused_argc, const char **unused_argv)
    char field[30];
    const char *temp_obs_filename = "sat_obs.txt";
    double search_radius = 4.;     /* look 4 degrees for matches */
-   double motion_cutoff = 20.;  /* up to 20" discrepancy OK */
+   double motion_cutoff = 60.;  /* up to 60" discrepancy OK */
    double low_speed_cutoff = 0.001;  /* anything slower than this is almost */
-   const int argc = 6;               /* certainly not an artsat */
+   int argc = 0;                     /* certainly not an artsat */
    FILE *lock_file = fopen( "lock.txt", "w");
    size_t bytes_written = 0, i;
-   int cgi_status;
+   int cgi_status, show_summary = 0;
    extern int verbose;
 #ifndef _WIN32
    extern char **environ;
@@ -94,27 +94,31 @@ int main( const int unused_argc, const char **unused_argv)
          if( verbosity)
             verbose = atoi( verbosity + 1) + 1;
          }
-//    if( !strcmp( field, "motion"))
-//       motion_cutoff = atof( buff);
-//    if( !strcmp( field, "low_speed"))
-//       low_speed_cutoff = atof( buff);
+      if( !strcmp( field, "motion"))
+         motion_cutoff = atof( buff);
+      if( !strcmp( field, "low_speed"))
+         low_speed_cutoff = atof( buff);
+      if( !strcmp( field, "summary"))
+         show_summary = 1;
       }
    fprintf( lock_file, "Fields read\n");
 // printf( "<p>Fields read</p>\n");
    if( verbose)
       printf( "Searching to %f degrees;  %u bytes read from input\n",
                      search_radius, (unsigned)bytes_written);
-   argv[0] = "sat_id";
-   argv[1] = temp_obs_filename;
-   argv[2] = "-t../../tles/tle_list.txt";
+   argv[argc++] = "sat_id";
+   argv[argc++] = temp_obs_filename;
+   argv[argc++] = "-t../../tles/tle_list.txt";
    snprintf_err( field, sizeof( field), "-r%.2f", search_radius);
-   argv[3] = field;
+   argv[argc++] = field;
    snprintf_err( buff, max_buff_size, "-y%f", motion_cutoff);
-   argv[4] = buff;
+   argv[argc++] = buff;
    tptr = buff + strlen( buff) + 1;
    snprintf( tptr, 15, "-z%f", low_speed_cutoff);
-   argv[5] = tptr;
-   argv[6] = NULL;
+   argv[argc++] = tptr;
+   if( show_summary)
+      argv[argc++] = "-u";
+   argv[argc] = NULL;
    for( i = 0; argv[i]; i++)
       fprintf( lock_file, "arg %d: '%s'\n", (int)i, argv[i]);
    sat_id_main( argc, argv);
