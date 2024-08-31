@@ -72,14 +72,24 @@ int main( const int argc, const char **argv)
    FILE *ifile = fopen( argc == 1 ? "all_tle.txt" : argv[1], "rb");
    char buff[100];
    size_t i;
-   int trouble_found = 0;
+   int trouble_found = 0, n_found = 0;
 
    assert( ifile);
    while( fgets( buff, sizeof( buff), ifile))
-      if( *buff == '1' && buff[1] == ' ')
-         for( i = 0; sats[i]; i++)
-            if( sats[i][0] == buff[9] && !memcmp( sats[i], buff + 9, 7))
-               sats[i] = "";
+      if( *buff == '1' && buff[1] == ' ' && buff[7] == 'U')
+         {
+         size_t len = strlen( buff);
+
+         while( len && buff[len - 1] < ' ')
+            len--;
+         if( 69 == len)
+            {
+            n_found++;
+            for( i = 0; sats[i]; i++)
+               if( sats[i][0] == buff[9] && !memcmp( sats[i], buff + 9, 7))
+                  sats[i] = "";
+            }
+         }
    fclose( ifile);
    printf( "This will list high-flying artsats for which TLEs are not provided :\n");
    for( i = 0; sats[i]; i++)
@@ -101,5 +111,6 @@ int main( const int argc, const char **argv)
    if( !trouble_found)
       printf( "Any missing objects are covered by other sources.  Nothing\n"
               "to worry about here.\n");
+   printf( "%d found\n", (int)n_found);
    return( 0);
 }
