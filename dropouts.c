@@ -9,11 +9,28 @@ objects (marked with an !),  Space-Track is our only source of TLEs.
 (Or at least,  I've been relying on them.  I _could_ generate TLES for
 CXO,  for example,  based on _Horizons_ ephems.  But I want this
 program to squawk loudly if Space-Track stops supplying CXO TLEs.)
-*/
+
+   As of 2024 Aug 31,  the program can also be used for updating the
+Space-Track TLEs in a slightly more cautious manner.  If you have
+downloaded new TLEs as the (default) ALL_TLE.TXT,  and your "usual"
+TLEs are at all_tle.txt,  then
+
+./dropouts ALL_TLE.TXT 25000 all_tle.txt
+
+   will check to see if ALL_TLE.TXT actually has 25000 or more TLEs in it.
+If it does,  the download is presumed to have succeeded;  all_tle.txt is
+unlinked and replaced with ALL_TLE.TXT.  If it fails,  we leave both files
+undisturbed.
+
+   This should help in the increasingly frequent situations where new
+TLE files are downloaded and then have only an error message,  or a
+drastically reduced number of TLEs.        */
 
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define VT_NORMAL        "\033[0m"
 #define VT_REVERSE       "\033[7m"
@@ -111,6 +128,12 @@ int main( const int argc, const char **argv)
    if( !trouble_found)
       printf( "Any missing objects are covered by other sources.  Nothing\n"
               "to worry about here.\n");
-   printf( "%d found\n", (int)n_found);
+   printf( "%d found\n", n_found);
+   if( 4 == argc && n_found > atoi( argv[2]))
+      {
+      printf( "Replacing '%s' with '%s'\n", argv[3], argv[1]);
+      unlink( argv[3]);
+      rename( argv[1], argv[3]);
+      }
    return( 0);
 }
