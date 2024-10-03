@@ -30,7 +30,11 @@ drastically reduced number of TLEs.        */
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+#ifdef _WIN32
+   #include <io.h>
+#else
+   #include <unistd.h>
+#endif
 
 #define VT_NORMAL        "\033[0m"
 #define VT_REVERSE       "\033[7m"
@@ -132,7 +136,11 @@ int main( const int argc, const char **argv)
    if( 4 == argc && n_found > atoi( argv[2]))
       {
       printf( "Replacing '%s' with '%s'\n", argv[3], argv[1]);
+#ifdef _WIN32
+      _unlink( argv[3]);
+#else
       unlink( argv[3]);
+#endif
       rename( argv[1], argv[3]);
       }
    return( 0);
