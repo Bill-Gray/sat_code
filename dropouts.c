@@ -43,7 +43,6 @@ int main( const int argc, const char **argv)
 {
    static const char *sats[] = {
           "00041A ! Cluster II-FM7",
-          "00041B ! Cluster II-FM6",
           "00045A ! Cluster II-FM5",
           "00045B ! Cluster II-FM8",
           "02048A ! INTEGRAL",
@@ -68,7 +67,6 @@ int main( const int argc, const char **argv)
           "22110B ! Ariane 5 R/B",
           "22146B ! Falcon 9 R/B",
           "23017B ! Falcon 9 R/B",
-          "23137E ! H-2A R/B",
           "63039A ! Vela 1A",
           "64040B ! Vela 2B",
           "65058B   Vela 6",
