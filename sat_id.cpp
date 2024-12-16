@@ -112,7 +112,7 @@ typedef struct
    double dist, ra, dec, motion_rate, motion_pa;
    int norad_number;
    char intl_desig[9];
-   char text[54];
+   char text[80];
    bool in_shadow;
 } match_t;
 
@@ -1224,8 +1224,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                         remove_redundant_desig( line0, norad_desig);
                         snprintf_append( obuff, sizeof( obuff), ": %s", line0);
                         }
+                     strlcpy( obj_ptr->matches[i].text, obuff + 26, sizeof( obj_ptr->matches[i].text));
                      obuff[79] = '\0';    /* avoid buffer overrun */
-                     strlcpy_error( obj_ptr->matches[i].text, obuff + 26);
 //                   snprintf_append( obuff, sizeof( obuff), " motion %f", motion_diff);
                      strlcat_error( obuff, "\n");
                      if( !dt)
