@@ -1149,6 +1149,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                   const double min_dt = 1e-6;   /* 0.0864 seconds */
                   double motion_diff, ra2, dec2;
                   double temp_array[8];
+                  bool show_computed_motion = true;
 
                   assert( dt >= 0.);
                   if( !dt)
@@ -1157,6 +1158,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
                      temp_obs.jd += min_dt;
                      set_observer_location( &temp_obs);
+                     if( vector3_length( optr2->observer_loc) > 6400.)
+                        show_computed_motion = false;   /* spacecraft-based obs */
                      compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
                               &temp_obs, &tle, sat_params, NULL);
                      }
@@ -1256,7 +1259,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                         motion_rate /= dt * minutes_per_day;
                      else
                         motion_rate /= min_dt * minutes_per_day;
-                     if( verbose || !field_mode)
+                     if( show_computed_motion && (verbose || !field_mode))
                         printf( "             motion %7.4f\"/sec at PA %5.1f (computed)\n\n",
                             motion_rate, motion_pa);
                      obj_ptr->matches[i].ra = ra;
