@@ -1508,7 +1508,7 @@ int main( const int argc, const char **argv)
    double t_low = oct_4_1957;
    double t_high = jan_1_2057;
    int rval, i, j, prev_i;
-   bool show_summary = false, add_new_line = false;
+   bool show_summary = false, add_new_line = false, all_single = false;
 
    if( argc == 1)
       {
@@ -1568,6 +1568,9 @@ int main( const int argc, const char **argv)
                break;
             case 's':
                my_tles_only = true;
+               break;
+            case 'S':      /* treat each observation individually */
+               all_single = true;
                break;
             case 't':
                tname = param;
@@ -1633,14 +1636,14 @@ int main( const int argc, const char **argv)
    shellsort_r( obs, n_obs, sizeof( obs[0]), compare_obs, NULL);
 
    for( n_objects = i = 0; (size_t)i < n_obs; i++)
-      if( !i || id_compare( obs + i - 1, obs + i) || field_mode)
+      if( !i || id_compare( obs + i - 1, obs + i) || field_mode || all_single)
          n_objects++;
    objects = (object_t *)calloc( n_objects, sizeof( object_t));
    assert( objects);
    if( !field_mode)
       printf( "%d objects\n", (int)n_objects);
    for( n_objects = i = prev_i = 0; (size_t)i < n_obs; i++)
-      if( !i || id_compare( obs + i - 1, obs + i) || field_mode)
+      if( !i || id_compare( obs + i - 1, obs + i) || field_mode || all_single)
          {
          objects[n_objects].obs = obs + i;
          if( n_objects)
