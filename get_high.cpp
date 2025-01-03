@@ -27,7 +27,7 @@ int main( const int argc, const char **argv)
    if( !ifile || !ofile)
       return( -1);
    *line0 = *line1 = '\0';
-   fprintf( ofile, "# Added %s\n", ctime( &t0));
+   fprintf( ofile, "# Added %.24s UTC\n", asctime( gmtime( &t0)));
    while( fgets( line2, sizeof( line2), ifile))
       {
       if( *line2 == '2' && *line1 == '1'
