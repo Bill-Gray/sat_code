@@ -1,4 +1,8 @@
-/* See LICENSE.
+/* See LICENSE.   NOTE that this has been obsoleted by the 'add_off.c'
+program in the 'lunar' repository (q.v.).  The only use this code would
+have would be for a spacecraft getting astrometric data for which we
+don't have Horizons data.  I don't expect that to happen.  With that
+disclaimer :
 
    The Minor Planet Center accepts astrometry from spacecraft using
 a modification of their usual 80-column "punched-card" format.  A
