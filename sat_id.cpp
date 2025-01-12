@@ -367,32 +367,6 @@ static int get_station_code_data( char *station_code_data,
    return( cached_ptr ? 0 : -1);
 }
 
-/* Spacecraft-based observations have the spacecraft position given on a
-second line.  See https://www.minorplanetcenter.net/iau/info/SatelliteObs.html
-for details.  That documentation is a little outdated;  the decimal point
-can actually be anywhere within the twelve-byte field.   */
-
-static double get_spacecraft_coord( const char *iptr)
-{
-   char tbuff[13];
-   size_t i = 0;
-   double rval;
-
-   strncpy( tbuff, iptr, 13);
-   tbuff[12] = '\0';
-   while( tbuff[i] != '+' && tbuff[i] != '-' && tbuff[i])
-      i++;
-   if( !tbuff[i])
-      rval = 0.;
-   else
-      {
-      rval = atof( tbuff + i + 1);
-      if( tbuff[i] == '-')
-         rval = -rval;
-      }
-   return( rval);
-}
-
 /* Code to check if a 'second line' (v for roving observer or s for
 spacecraft observation) matches a 'first line' (the one that has the actual
 astrometry).  If the date and obscode match,  and the observation doesn't
@@ -479,20 +453,14 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
             strlcpy_error( toff.mpc_code, buff + 77);
             if( buff[14] == 's')
                {
+               int err_code = get_satellite_offset( buff, toff.posn);
                for( i = 0; i < 3; i++)
-                  {
-                  toff.posn[i] = get_spacecraft_coord( buff + 34 + i * 12);
-                  if( buff[32] == '2')    /* posn is actually in AU */
-                     toff.posn[i] /= AU_IN_KM;
-                  if( !toff.posn[i])
-                     {
-                     if( n_errors_found++ < 10)
-                        fprintf( stderr, REVERSE_VIDEO "Malformed satellite offset\n%s\n"
-                                       NORMAL_VIDEO, buff);
-
-                     i = 3;
-                     }
-                  }
+                  toff.posn[i] *= AU_IN_KM;
+               ecliptic_to_equatorial( toff.posn);
+               if( err_code < 0 && n_errors_found++ < 10)
+                     fprintf( stderr, REVERSE_VIDEO
+                                    "Malformed satellite offset; err %d\n%s\n"
+                                    NORMAL_VIDEO, err_code, buff);
                }
             else
                {
