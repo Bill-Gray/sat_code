@@ -67,7 +67,6 @@ int main( const int argc, const char **argv)
           "22110B ! Ariane 5 R/B",
           "22146B ! Falcon 9 R/B",
           "22134B ! Falcon 9 R/B",
-          "23017B ! Falcon 9 R/B",
           "24048E ! DRO R/B",
           "24059B ! Falcon 9 R/B",
           "24127B ! Falcon 9 R/B",
