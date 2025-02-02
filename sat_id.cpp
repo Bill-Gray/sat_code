@@ -1123,12 +1123,14 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                   if( !dt)
                      {
                      OBSERVATION temp_obs = *optr2;
+                     double dist2;
 
                      temp_obs.jd += min_dt;
-                     set_observer_location( &temp_obs);
+                     if( memcmp( temp_obs.text + 77, "247", 3))
+                        set_observer_location( &temp_obs);
                      if( vector3_length( optr2->observer_loc) > 6400.)
                         show_computed_motion = false;   /* spacecraft-based obs */
-                     compute_artsat_ra_dec( &ra2, &dec2, &dist_to_satellite,
+                     compute_artsat_ra_dec( &ra2, &dec2, &dist2,
                               &temp_obs, &tle, sat_params, NULL);
                      }
                   else
