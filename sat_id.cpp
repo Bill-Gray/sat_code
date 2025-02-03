@@ -1263,19 +1263,29 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
             if( fabs( mjd_start + 2400000.5 - tle_start) > tolerance)
                {
+               char time_buff[40];
+
                fprintf( stderr, REVERSE_VIDEO "WARNING: starting date for TLEs in '%s' "
                         "mismatches that in tle_list.txt\n" NORMAL_VIDEO, tle_file_name);
-               fprintf( stderr, "TLE list start MJD %f\n", tle_start - 2400000.5);
-               fprintf( stderr, "'Range:' line start MJD %f\n", mjd_start);
+               full_ctime( time_buff, tle_start, FULL_CTIME_YMD);
+               fprintf( stderr, "TLE list start MJD %f = %s\n",
+                                             tle_start - 2400000.5, time_buff);
+               full_ctime( time_buff, mjd_start + 2400000., FULL_CTIME_YMD);
+               fprintf( stderr, "'Range:' line start MJD %f = %s\n", mjd_start, time_buff);
                fprintf( stderr, "diff = %f\n",
                         mjd_start + 2400000.5 - tle_start);
                }
             if( fabs( mjd_end + 2400000.5 - tle_start - tle_range) > tolerance)
                {
+               char time_buff[40];
+
                fprintf( stderr, REVERSE_VIDEO "WARNING: ending date for TLES in '%s' "
                         "mismatches that in tle_list.txt\n" NORMAL_VIDEO, tle_file_name);
-               fprintf( stderr, "TLE list ends MJD %f\n", tle_start + tle_range - 2400000.5);
-               fprintf( stderr, "'Range:' line ends MJD %f\n", mjd_end);
+               full_ctime( time_buff, tle_start + tle_range, FULL_CTIME_YMD);
+               fprintf( stderr, "TLE list ends MJD %f = %s\n",
+                             tle_start + tle_range - 2400000.5, time_buff);
+               full_ctime( time_buff, mjd_end + 2400000.5, FULL_CTIME_YMD);
+               fprintf( stderr, "'Range:' line ends MJD %f = %s\n", mjd_end, time_buff);
                fprintf( stderr, "diff = %f\n",
                         mjd_end + 2400000.5 - tle_start - tle_range);
                }
