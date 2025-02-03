@@ -7,8 +7,8 @@ This should warn me if certain artsats get dropped from 'all_tle.txt'.
    The absence of certain artsats is essentially routine.  But for some
 objects (marked with an !),  Space-Track is our only source of TLEs.
 (Or at least,  I've been relying on them.  I _could_ generate TLES for
-CXO,  for example,  based on _Horizons_ ephems.  But I want this
-program to squawk loudly if Space-Track stops supplying CXO TLEs.)
+CXO,  for example,  based on _Horizons_ ephems.  Since I don't,  I want
+this program to squawk loudly if Space-Track stops supplying CXO TLEs.)
 
    As of 2024 Aug 31,  the program can also be used for updating the
 Space-Track TLEs in a slightly more cautious manner.  If you have
@@ -80,6 +80,7 @@ int main( const int argc, const char **argv)
           "67040A   Vela 4A",
           "67040F ! Titan 3C transtage booster",
           "69046F ! Titan 3C transtage booster",
+          "69046G ! Vela 9/10 interstage",
           "70027C ! Vela 6 booster",
           "72073A   IMP-7",
           "76023C ! SOLRAD-11A",
