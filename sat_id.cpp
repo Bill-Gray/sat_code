@@ -1270,7 +1270,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
                full_ctime( time_buff, tle_start, FULL_CTIME_YMD);
                fprintf( stderr, "TLE list start MJD %f = %s\n",
                                              tle_start - 2400000.5, time_buff);
-               full_ctime( time_buff, mjd_start + 2400000., FULL_CTIME_YMD);
+               full_ctime( time_buff, mjd_start + 2400000.5, FULL_CTIME_YMD);
                fprintf( stderr, "'Range:' line start MJD %f = %s\n", mjd_start, time_buff);
                fprintf( stderr, "diff = %f\n",
                         mjd_start + 2400000.5 - tle_start);
@@ -1470,6 +1470,7 @@ int main( const int argc, const char **argv)
    const char *tname = "tle_list.txt";
    const char *output_astrometry_filename = NULL;
    bool output_only_matches = false;
+   const char *ifilename = NULL;
    FILE *ifile;
    OBSERVATION *obs;
    object_t *objects;
@@ -1570,6 +1571,8 @@ int main( const int argc, const char **argv)
                break;
             }
          }
+      else if( !ifilename)
+         ifilename = argv[i];
    if( verbose)
       for( i = 0; i < argc; i++)
          printf( "Arg %d: '%s'\n", i, argv[i]);
@@ -1602,10 +1605,11 @@ int main( const int argc, const char **argv)
       }
 #endif
 
-   ifile = fopen( argv[1], "rb");
+   assert( ifilename);
+   ifile = fopen( ifilename, "rb");
    if( !ifile)
       {
-      fprintf( stderr, "Couldn't open input file %s\n", argv[1]);
+      fprintf( stderr, "Couldn't open input file %s\n", ifilename);
       perror( NULL);
       return( -1);
       }
