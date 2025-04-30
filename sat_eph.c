@@ -148,8 +148,8 @@ static double compute_angular_rates( const double *obs_pos, const double *topo_p
    total_motion = hypot( xmotion, ymotion);
    *motion_pa = PI + atan2( xmotion, ymotion);
    *motion_pa *= 180. / PI;
-   *ra_motion = xmotion * (180. / PI) * 60.;
-   *dec_motion = ymotion * (180. / PI) * 60.;
+   *ra_motion = -xmotion * (180. / PI) * 60.;
+   *dec_motion = -ymotion * (180. / PI) * 60.;
    return( total_motion * (180. / PI) * 60.);      /* cvt to arcmin/min = arcsec/sec */
 }
 
@@ -512,7 +512,8 @@ static void error_help( void)
            "   -t(date/time) : starting time of ephemeris (default = now)\n"
            "   -n(#) : number of ephemeris steps (default = 20)\n"
            "   -s(#) : ephemeris step size in days (default = 1h)\n"
-           "   -o(#) : five digit NORAD number or YYNNNA international designation\n"
+           "   -S    : show motions in RA/dec components,  as well as total/PA\n");
+   printf( "   -o(#) : five digit NORAD number or YYNNNA international designation\n"
            "   -r    : do _not_ round times to nearest step size\n"
            "   -u    : show motions in \"/min = degrees/hr (default is \"/sec)\n"
            "   -m    : show times as MJD\n"
