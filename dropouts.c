@@ -70,7 +70,6 @@ int main( const int argc, const char **argv)
           "24048E   DRO R/B",
           "24059B ! Falcon 9 R/B",
           "24127B ! Falcon 9 R/B",
-          "24214B ! Falcon 9 R/B",
           "24233A ! Proba-3",
           "24233B ! Proba-3 booster",
           "63039A ! Vela 1A",
