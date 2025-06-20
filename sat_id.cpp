@@ -1674,8 +1674,8 @@ int main( const int argc, const char **argv)
                {
                char *tptr = strchr( objects[i].matches[0].text, ':');
 
-               assert( tptr);              /* if only one match,  output */
-               printf( " %s", tptr + 1);   /* the object name */
+               if( tptr)                   /* if only one match,  output */
+                  printf( " %s", tptr + 1);   /* the object name */
                }
             if( objects[i].n_matches)
                n_matched++;
