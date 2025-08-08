@@ -1060,6 +1060,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
          n_tles_found++;
          if( tle.norad_number == 99999)
             look_up_extended_identifiers( line0, &tle);
+         if( line0[0] == '0' && line0[1] == ' ')
+            memmove( line0, line0 + 2, strlen( line0 + 1));
          if( (search_norad && search_norad != tle.norad_number)
                || (*search_intl && strcmp( search_intl, tle.intl_desig)))
             {
