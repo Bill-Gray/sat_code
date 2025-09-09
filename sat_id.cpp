@@ -954,23 +954,30 @@ static void remove_redundant_desig( char *name, const char *desig)
 /* We check astrometry first against TLEs from github.com/Bill-Gray/tles,
 then some other sources such as the amateur community's TLEs,  and
 only then against Space-Track TLEs.  If we've already checked an
-object against the previous sources,  then we really ought not to
-check the Space-Track TLEs.  For one thing,  the mere fact that we've
-gone to the effort of computing "our own" TLEs means the Space-Track
-TLEs are unreliable (some have poor accuracy;  others are not consistently
-available).
+object against the previous sources,  using TLEs whose date range would
+cover that object,  then we really ought not to check the Space-Track
+TLEs.  For one thing,  the mere fact that we've gone to the effort of
+computing "our own" TLEs means the Space-Track TLEs are unreliable (some
+have poor accuracy;  others are not consistently available).
 
 Therefore,  we maintain a list of '# ID:' numbers from tle_list.txt,  and when we
 get to '# ID off',  we figure we're in Space-Track TLE territory.  If we
 encounter a NORAD number that's in our list,  we essentially say :
 we already found this object and have handled it. */
 
-static bool already_found_desig( const int curr_norad, size_t n_norad_ids, const int *norad_ids)
+typedef struct
+{
+   int norad_number;
+   double min_jd, max_jd;
+} already_found_t;
+
+static bool already_found_desig( const int curr_norad, size_t n_found,
+            const already_found_t *found, double jd)
 {
    bool rval = false;
 
-   while( !rval && n_norad_ids)
-      rval = (curr_norad == norad_ids[--n_norad_ids]);
+   for( size_t i = 0; !rval && i < n_found; i++)
+      rval = (curr_norad == found[i].norad_number && jd > found[i].min_jd && jd < found[i].max_jd);
    return( rval);
 }
 
@@ -1018,7 +1025,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
    bool look_for_tles = true;
    static bool error_check_date_ranges = true;
    const clock_t time_started = clock( );
-   static int *norad_ids = NULL;
+   static already_found_t *norad_ids = NULL;
    static size_t n_norad_ids = 0;
    const double mjd_1970 = 40587.;     /* MJD for 1970 Jan 1 */
    const double curr_mjd = mjd_1970 + (double)time( NULL) / 86400.;
@@ -1027,6 +1034,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       {
       if( norad_ids)
          free( norad_ids);
+      norad_ids = NULL;
       n_norad_ids = 0;
       return( 0);
       }
@@ -1076,8 +1084,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       if( is_a_tle && (tle.ephemeris_type == 'H'
                  || tle.xno < 2. * PI * max_revs_per_day / mins_per_day)
                  && (!norad_id || norad_id == tle.norad_number)
-                 && (!intl_desig || !_compare_intl_desigs( tle.intl_desig, intl_desig))
-                 && (search_norad || !already_found_desig( tle.norad_number, n_norad_ids, norad_ids)))
+                 && (!intl_desig || !_compare_intl_desigs( tle.intl_desig, intl_desig)))
          {                           /* hey! we got a TLE! */
          double sat_params[N_SAT_PARAMS];
          size_t idx;
@@ -1096,7 +1103,8 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 
             assert( obj_ptr->idx1 <= obj_ptr->idx2);
             assert( optr2->jd >= optr1->jd);
-            if( is_in_range( optr1->jd, tle_start, tle_range))
+            if( is_in_range( optr1->jd, tle_start, tle_range) &&
+                 (search_norad || !already_found_desig( tle.norad_number, n_norad_ids, norad_ids, optr1->jd)))
                {
                double radius;
                double ra, dec, dist_to_satellite;
@@ -1361,17 +1369,15 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             strlcpy_err( iname + i, line2 + 10, sizeof( iname) - i);
             if( verbose > 1)
                printf( "Including '%s'\n", iname);
-            i = 0;
-            while( i < n_norad_ids && search_norad > norad_ids[i])
-               i++;
-            if( i == n_norad_ids || search_norad != norad_ids[i])
-               {                           /* insert newly-found ID */
+            if( search_norad)
+               {                           /* add newly-found ID */
                if( !n_norad_ids)
-                  norad_ids = (int *)malloc( sizeof( int));
+                  norad_ids = (already_found_t *)malloc( sizeof( already_found_t));
                else if( is_power_of_two( n_norad_ids))
-                  norad_ids = (int *)realloc( norad_ids, 2 * n_norad_ids * sizeof( int));
-               memmove( norad_ids + i + 1, norad_ids + i, (n_norad_ids - i) * sizeof( int));
-               norad_ids[i] = search_norad;
+                  norad_ids = (already_found_t *)realloc( norad_ids, 2 * n_norad_ids * sizeof( already_found_t));
+               norad_ids[n_norad_ids].norad_number = search_norad;
+               norad_ids[n_norad_ids].min_jd = tle_start;
+               norad_ids[n_norad_ids].max_jd = tle_start + tle_range;
                n_norad_ids++;
                }
             rval = add_tle_to_obs( objects, n_objects, iname, search_radius,
