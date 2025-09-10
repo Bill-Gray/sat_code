@@ -6,12 +6,14 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
+#include <zlib.h>
 #include "watdefs.h"
 #include "afuncs.h"
 #include "comets.h"
 #include "date.h"
 #include "norad.h"
 #include "mpc_func.h"
+#include "stringex.h"
 #include "observe.h"
 
 /* Code to generate topocentric ephemerides from TLE data,  mostly focussed
@@ -31,9 +33,9 @@ typedef struct
 
 static int verbose = 0;
 
-static char *fgets_trimmed( char *buff, const int buffsize, FILE *ifile)
+static char *gzgets_trimmed( char *buff, const int buffsize, gzFile ifile)
 {
-   char *rval = fgets( buff, buffsize, ifile);
+   char *rval = gzgets( ifile, buff, buffsize);
 
    if( rval)
       {
@@ -162,7 +164,7 @@ static bool output_mjd = false;
 static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
                                   const char *filename, int start_line)
 {
-   FILE *ifile;
+   gzFile ifile;
    char line0[100], line1[100], line2[100];
    int show_it = 1, header_shown = 0;
    double jd_tle = 0., tle_range = 1e+10, abs_mag = 0.;
@@ -176,14 +178,19 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
    if( verbose)
       printf( "Should examine '%s'; start line %d\n", filename, start_line);
    snprintf( line0, sizeof( line0), "%s/%s", path_to_tles, filename);
-   ifile = fopen( line0, "rb");
+   ifile = gzopen( line0, "rb");
+   if( !ifile)       /* maybe it's compressed */
+      {
+      strlcat_error( line0, ".gz");
+      ifile = gzopen( line0, "rb");
+      }
    if( !ifile)
       {
       fprintf( stderr, "'%s' not opened\n", line0);
       exit( 0);
       }
    *line0 = *line1 = '\0';
-   while( fgets_trimmed( line2, sizeof( line2), ifile))
+   while( gzgets_trimmed( line2, sizeof( line2), ifile))
       {
       tle_t tle;
 
@@ -348,7 +355,7 @@ static int show_ephems_from( const char *path_to_tles, const ephem_t *e,
       strcpy( line0, line1);
       strcpy( line1, line2);
       }
-   fclose( ifile);
+   gzclose( ifile);
    return( start_line);
 }
 
@@ -356,21 +363,26 @@ static const char *tle_list_filename = "tle_list.txt";
 
 int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
 {
-   FILE *ifile;
+   gzFile ifile;
    char buff[100];
    int is_in_range = 0, id_matches = 1, start_line = 0;
 
    snprintf( buff, sizeof( buff), "%s/%s", path_to_tles, tle_list_filename);
    if( verbose > 1)
       printf( "Opening '%s', looking for '%s'\n", buff, e->desig);
-   ifile = fopen( buff, "rb");
+   ifile = gzopen( buff, "rb");
+   if( !ifile)
+      {
+      strlcat_error( buff, ".gz");
+      ifile = gzopen( buff, "rb");
+      }
    if( !ifile)
       {
       fprintf( stderr, "'%s' not opened\n", buff);
       exit( 0);
       }
    while( start_line != e->n_steps &&
-                          fgets_trimmed( buff, sizeof( buff), ifile))
+                          gzgets_trimmed( buff, sizeof( buff), ifile))
       {
       if( !memcmp( buff, "# Range:", 8))
          {
@@ -405,7 +417,7 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
          id_matches = 1;
          }
       }
-   fclose( ifile);
+   gzclose( ifile);
    if( start_line)
       printf( "%s", _header);
    return( start_line);
@@ -418,7 +430,7 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
 
    if( rval)
       {
-      FILE *ifile = fopen( obscode_file_name, "rb");
+      gzFile ifile = gzopen( obscode_file_name, "rb");
       char buff[200];
 
       if( !ifile)
@@ -426,7 +438,7 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
          fprintf( stderr, "'%s' not found\n", obscode_file_name);
          exit( 0);
          }
-      while( rval && fgets_trimmed( buff, sizeof( buff), ifile))
+      while( rval && gzgets_trimmed( buff, sizeof( buff), ifile))
          if( !memcmp( mpc_code, buff, 3))
             {
             const int planet = get_mpc_code_info( &c, buff);
@@ -440,7 +452,7 @@ static int set_location( ephem_t *e, const char *mpc_code, const char *obscode_f
             rval = 0;
             printf( "%s\n", c.name);
             }
-      fclose( ifile);
+      gzclose( ifile);
       }
    if( !rval)
       {

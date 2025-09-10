@@ -65,6 +65,7 @@ should be used,  and the others are suppressed.       */
 #include <ctype.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <zlib.h>
 #if defined( _WIN32) || defined( __WATCOMC__)
    #include <malloc.h>     /* for alloca() prototype */
 #else
@@ -951,6 +952,21 @@ static void remove_redundant_desig( char *name, const char *desig)
          }
 }
 
+static char *gzgets_trimmed( gzFile ifile, char *buff, const size_t buff_len)
+{
+   char *rval = gzgets( ifile, buff, buff_len);
+
+   if( rval)
+      {
+      size_t len = strlen( buff);
+
+      while( len && buff[len - 1] <= ' ')
+         len--;
+      buff[len] = '\0';
+      }
+   return( rval);
+}
+
 /* We check astrometry first against TLEs from github.com/Bill-Gray/tles,
 then some other sources such as the amateur community's TLEs,  and
 only then against Space-Track TLEs.  If we've already checked an
@@ -1019,7 +1035,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
              const double max_revs_per_day)
 {
    char line0[100], line1[100], line2[100];
-   FILE *tle_file;
+   gzFile tle_file;
    int rval = 0, n_tles_found = 0;
    bool check_updates = true;
    bool look_for_tles = true;
@@ -1038,7 +1054,15 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       n_norad_ids = 0;
       return( 0);
       }
-   tle_file = fopen( tle_file_name, "rb");
+   tle_file = gzopen( tle_file_name, "rb");
+   if( !tle_file)
+      {
+      char buff[200];      /* try again with .gz added to the filename */
+
+      strlcpy_error( buff, tle_file_name);
+      strlcat_error( buff, ".gz");
+      tle_file = gzopen( buff, "rb");
+      }
    if( !tle_file)
       {
 #ifdef ON_LINE_VERSION
@@ -1054,7 +1078,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
       printf( "Looking through TLE file '%s', %u objs, radius %f, max %f revs/day\n",
                  tle_file_name, (unsigned)n_objects, search_radius, max_revs_per_day);
    *line0 = *line1 = '\0';
-   while( fgets_trimmed( line2, sizeof( line2), tle_file))
+   while( gzgets_trimmed( tle_file, line2, sizeof( line2)))
       {
       tle_t tle;  /* Structure for two-line elements set for satellite */
       const double mins_per_day = 24. * 60.;
@@ -1315,7 +1339,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
             if( verbose)
                fprintf( stderr, REVERSE_VIDEO "'%s' contains no TLEs for our time range\n"
                                NORMAL_VIDEO, tle_file_name);
-            fclose( tle_file);
+            gzclose( tle_file);
             return( 0);
             }
          }
@@ -1420,7 +1444,7 @@ static int add_tle_to_obs( object_t *objects, const size_t n_objects,
 #endif
       printf( "Please e-mail the author (pluto at projectpluto dot com) about this.\n");
       }
-   fclose( tle_file);
+   gzclose( tle_file);
    return( rval);
 }
 
