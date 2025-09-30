@@ -65,11 +65,12 @@ should be used,  and the others are suppressed.       */
 #include <ctype.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <zlib.h>
 #if defined( _WIN32) || defined( __WATCOMC__)
    #include <malloc.h>     /* for alloca() prototype */
+   #include "zlibstub.h"
 #else
    #include <unistd.h>
+   #include <zlib.h>
 #endif
 
 #if defined(_MSC_VER) && _MSC_VER < 1900

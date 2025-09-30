@@ -6,7 +6,11 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
-#include <zlib.h>
+#if defined( _WIN32) || defined( __WATCOMC__)
+   #include "zlibstub.h"
+#else
+   #include <zlib.h>
+#endif
 #include "watdefs.h"
 #include "afuncs.h"
 #include "comets.h"

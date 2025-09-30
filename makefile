@@ -32,17 +32,6 @@ endif
 EXE=
 RM=rm -f
 
-# I'm using 'mkdir -p' to avoid error messages if the directory exists.
-# It may fail on very old systems,  and will probably fail on non-POSIX
-# systems.  If so,  change to '-mkdir' and ignore errors.
-
-ifdef MSWIN
-	EXE=.exe
-	MKDIR=-mkdir
-else
-	MKDIR=mkdir -p
-endif
-
 LIB_DIR=$(INSTALL_DIR)/lib
 
 ifdef W64
@@ -57,6 +46,17 @@ ifdef W32
 	CXX=i686-w64-mingw32-g++
 	EXE=.exe
 	LIB_DIR=$(INSTALL_DIR)/win_lib32
+endif
+
+# I'm using 'mkdir -p' to avoid error messages if the directory exists.
+# It may fail on very old systems,  and will probably fail on non-POSIX
+# systems.  If so,  change to '-mkdir' and ignore errors.
+
+ifeq ($(EXE),.exe)
+	MKDIR=-mkdir
+else
+	ZLIB=-lz
+	MKDIR=mkdir -p
 endif
 
 # You can have your include files in ~/include and libraries in
@@ -179,19 +179,19 @@ libsatell.a: $(OBJS)
 	ar rv libsatell.a $(OBJS)
 
 sat_eph$(EXE):	 	sat_eph.c	observe.o libsatell.a
-	$(CC) $(CFLAGS) -o sat_eph$(EXE) -I $(INCL) sat_eph.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar -lz
+	$(CC) $(CFLAGS) -o sat_eph$(EXE) -I $(INCL) sat_eph.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar $(ZLIB)
 
 sat_cgi$(EXE):	 	sat_eph.c	observe.o libsatell.a
-	$(CC) $(CFLAGS) -o sat_cgi$(EXE) -I $(INCL) sat_eph.c observe.o -DON_LINE_VERSION libsatell.a -lm -L $(LIB_DIR) -llunar -lz
+	$(CC) $(CFLAGS) -o sat_cgi$(EXE) -I $(INCL) sat_eph.c observe.o -DON_LINE_VERSION libsatell.a -lm -L $(LIB_DIR) -llunar $(ZLIB)
 
 sat_id$(EXE):	 	sat_id.cpp sat_util.o	observe.o libsatell.a
-	$(CXX) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar -lz
+	$(CXX) $(CFLAGS) -o sat_id$(EXE) -I $(INCL) sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar $(ZLIB)
 
 sat_id2$(EXE):	 	sat_id2.cpp sat_id.cpp sat_util.o observe.o libsatell.a
-	$(CXX) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar -lz
+	$(CXX) $(CFLAGS) -o sat_id2$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id2.cpp sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar $(ZLIB)
 
 sat_id3$(EXE):	 	sat_id3.cpp sat_id.cpp sat_util.o observe.o libsatell.a
-	$(CXX) $(CFLAGS) -o sat_id3$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id3.cpp sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar -lz
+	$(CXX) $(CFLAGS) -o sat_id3$(EXE) -I $(INCL) -DON_LINE_VERSION sat_id3.cpp sat_id.cpp sat_util.o observe.o libsatell.a -lm -L $(LIB_DIR) -llunar $(ZLIB)
 
 summarize$(EXE):	 	summarize.c	observe.o libsatell.a
 	$(CC) $(CFLAGS) -o summarize$(EXE) -I $(INCL) summarize.c observe.o libsatell.a -lm -L $(LIB_DIR) -llunar
