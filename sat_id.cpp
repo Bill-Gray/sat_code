@@ -521,7 +521,7 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
 
                if( dt)
                   fprintf( stderr, "%ld obs (%.0lf obs/second) \r",
-                        count, (double)count * (double)CLOCKS_PER_SEC / (double)dt);
+                        (long)count, (double)count * (double)CLOCKS_PER_SEC / (double)dt);
                }
             }
          }
