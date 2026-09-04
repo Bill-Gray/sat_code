@@ -68,7 +68,6 @@ int main( const int argc, const char **argv)
           "22146B ! Falcon 9 R/B",
           "22134B ! Falcon 9 R/B",
           "24048E   DRO R/B",
-          "24059B ! Falcon 9 R/B",
           "24127B ! Falcon 9 R/B",
           "24233A ! Proba-3",
           "24233B ! Proba-3 booster",
@@ -115,6 +114,10 @@ int main( const int argc, const char **argv)
             for( i = 0; sats[i]; i++)
                if( sats[i][0] == buff[9] && !memcmp( sats[i], buff + 9, 7))
                   sats[i] = "";
+            if( !memcmp( buff + 9, "70027A ", 7))
+               printf( VT_REVERSE "** 1970-027A = Vela 6A is listed! ***" VT_NORMAL "\n");
+            if( !memcmp( buff + 9, "70027B ", 7))
+               printf( VT_REVERSE "*** 1970-027B = Vela 6B is listed! ***" VT_NORMAL "\n");
             }
          }
    fclose( ifile);
