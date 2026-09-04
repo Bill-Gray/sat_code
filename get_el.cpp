@@ -169,6 +169,12 @@ skipped.  That gets us to 339999 :
 
 https://www.space-track.org/documentation#tle-alpha5
 
+A 10     F 15    L 20    R 25    W 30
+B 11     G 16    M 21    S 26    X 31
+C 12     H 17    N 22    T 27    Y 32
+D 13     J 18    P 23    U 28    Z 33
+E 14     K 19    Q 24    V 29
+
    Note that Alpha-5 is referred to as a "stopgap".  Near the bottom of
 the above link,  "space-track.org encourages users to switch to... XML,
 KVN,  or JSON",  (partly) because these will handle nine-digit catalog
@@ -193,7 +199,14 @@ digits,  26 uppercase and 26 lowercase letters,  and + and /.
 
 (4) xxxXd = 64^3*54*10   = 141557760 more
          Numbers 906309664 to 1047867423;  000A0 and up
-              (going slightly past the billion we actually need) */
+              (going slightly past the billion we actually need)
+
+Alternatively,  one could adopt an 'Alpha-6' scheme,  using the fact
+that the numbers are stored as five characters in columns 3-7,
+preceded by a space.  If that space is,  instead,  0-9 or an
+uppercase letter (but not I or O), the NORAD number could be stored
+as a six-"digit" base-34 number. 34^6 = 1544804416,  taking us a bit
+past one billion.  */
 
 static int base64_to_int( const char c)
 {
