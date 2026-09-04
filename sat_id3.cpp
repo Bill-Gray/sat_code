@@ -97,6 +97,7 @@ int main( const int unused_argc, const char **unused_argv)
       }
    ofile = fopen( output_file_name, "w");
    fprintf( ofile, "COD XXX\n");
+   fprintf( ofile, "COM Search radius %s\n", search_radius);
    fprintf( ofile, "COM Long. %s, Lat. %s, Alt. %s, unspecified\n",
                   longitude, latitude, altitude);
    fprintf( ofile, "Field,%s,%s,%s,XXX\n", date, ra, dec);
@@ -104,12 +105,14 @@ int main( const int unused_argc, const char **unused_argv)
    argv[0] = "sat_id";
    argv[1] = output_file_name;
    argv[2] = "-t../../tles/tle_list.txt";
-   argv[3] = NULL;
+   argv[3] = "-r";
+   argv[4] = search_radius;
+   argv[5] = NULL;
    for( i = 0; argv[i]; i++)
       fprintf( lock_file, "arg %d: '%s'\n", (int)i, argv[i]);
    sat_id_main( argc, argv);
    fprintf( lock_file, "sat_id_main called\n");
-   printf( "On-line artsats-in-field-finder compiled"
+   printf( "On-line artsats-in-field-finder compiled "
                             __DATE__ " " __TIME__ " UTC-5h\n");
    printf( "See <a href='https://www.github.com/Bill-Gray/sat_code'>"
                "https://www.github.com/Bill-Gray/sat_code</a> for source code\n");
