@@ -94,7 +94,7 @@ static inline bool desig_match( const tle_t *tle, const char *desig)
 
    while( isdigit( desig[i]))
       i++;
-   if( i == 5)
+   if( i >= 5)
       {
       if( !desig[i])       /* desig is all digits -> it's the NORAD # */
          rval = (atoi( desig) == tle->norad_number);
@@ -407,26 +407,21 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
          }
       if( !memcmp( buff, "# ID:", 5))
          {
-         char norad_id[10], cospar_id[10];
+         int norad_id;
+         char cospar_id[10];
 
-         if( 2 != sscanf( buff + 5, "%10s %10s", norad_id, cospar_id))
+         if( 2 != sscanf( buff + 5, "%d %9s", &norad_id, cospar_id))
             {
             fprintf( stderr, "BAD LINE %s\n", buff);
             exit( -1);
             }
-         for( int i = 0; norad_id[i]; i++)
-            if( !isdigit( norad_id[i]))
-               {
-               printf( "BAD NORAD ID %s\n", buff);
-               exit( -2);
-               }
          for( int i = 0; i < 5; i++)
             if( !isdigit( cospar_id[i]) || !isupper( cospar_id[5]))
                {
                printf( "BAD COSPAR ID %s\n", buff);
                exit( -3);
                }
-         if( strcmp( e->desig, cospar_id) && atoi( norad_id) != atoi( e->desig))
+         if( strcmp( e->desig, cospar_id) && norad_id != atoi( e->desig))
             id_matches = 0;
          }
       if( !memcmp( buff, "# Include ", 10))
