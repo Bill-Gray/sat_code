@@ -407,17 +407,26 @@ int generate_artsat_ephems( const char *path_to_tles, const ephem_t *e)
          }
       if( !memcmp( buff, "# ID:", 5))
          {
-         int i;
+         char norad_id[10], cospar_id[10];
 
-         if( buff[5] != ' ' || buff[11] != ' ' || buff[12] != ' ')
+         if( 2 != sscanf( buff + 5, "%10s %10s", norad_id, cospar_id))
+            {
             fprintf( stderr, "BAD LINE %s\n", buff);
-         for( i = 6; i < 10; i++)
-            if( !isdigit( buff[i]) || !isdigit( buff[i + 7]))
+            exit( -1);
+            }
+         for( int i = 0; norad_id[i]; i++)
+            if( !isdigit( norad_id[i]))
                {
-               printf( "BAD LINE (2) %s\n", buff);
-               i = 99;
+               printf( "BAD NORAD ID %s\n", buff);
+               exit( -2);
                }
-         if( strcmp( e->desig, buff + 13) && atoi( buff + 5) != atoi( e->desig))
+         for( int i = 0; i < 5; i++)
+            if( !isdigit( cospar_id[i]) || !isupper( cospar_id[5]))
+               {
+               printf( "BAD COSPAR ID %s\n", buff);
+               exit( -3);
+               }
+         if( strcmp( e->desig, cospar_id) && atoi( norad_id) != atoi( e->desig))
             id_matches = 0;
          }
       if( !memcmp( buff, "# Include ", 10))
