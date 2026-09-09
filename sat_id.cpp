@@ -1749,7 +1749,7 @@ int main( const int argc, const char **argv)
 
             printf( "\n%.12s ", objects[i].obs->text);
             for( j = 0; j < (int)objects[i].n_matches; j++)
-               printf( " %05d %s", objects[i].matches[j].norad_number,
+               printf( " %7d %s", objects[i].matches[j].norad_number,
                             unpack_intl( objects[i].matches[j].intl_desig, buff));
             if( objects[i].n_matches == 1)
                {
