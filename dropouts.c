@@ -42,9 +42,6 @@ drastically reduced number of TLEs.        */
 int main( const int argc, const char **argv)
 {
    static const char *sats[] = {
-          "00041A ! Cluster II-FM7",
-          "00045A   Cluster II-FM5",
-          "00045B ! Cluster II-FM8",
           "02048A ! INTEGRAL",
           "07004A ! THEMIS-A",
           "07004D ! THEMIS-D",
@@ -67,11 +64,13 @@ int main( const int argc, const char **argv)
           "22110B ! Ariane 5 R/B",
           "22146B ! Falcon 9 R/B",
           "22134B ! Falcon 9 R/B",
-          "24048E   DRO R/B",
+          "24048E ! DRO R/B",
           "24127B ! Falcon 9 R/B",
           "24233A ! Proba-3",
           "24233B ! Proba-3 booster",
           "63039A   Vela 1A",
+          "26109A   SMILE",
+          "64040A   Vela 2A",
           "64040B   Vela 2B",
           "65058A   Vela 3A",
           "65058B   Vela 6",
@@ -82,6 +81,7 @@ int main( const int argc, const char **argv)
           "70027C ! Vela 6 booster",
           "72073A   IMP-7",
           "76023C ! SOLRAD-11A",
+          "76023G ! SOLRAD-11A/B PKM",
           "76023H ! SOLRAD-11 debris",
           "77093E   SL-6 R/B(2)",
           "83020A ! ASTRON",
