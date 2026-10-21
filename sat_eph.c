@@ -657,12 +657,19 @@ int dummy_main( const int argc, const char **argv)
    for( i = 1; i < argc; i++)
       if( argv[i][0] == '-' && argv[i][1] == 'o')
          {
-         char desig[30];
+         char desig[15];
 
-         strncpy( desig, get_arg( argv + i), 29);
+         strlcpy_error( desig, get_arg( argv + i));
          fix_desig( desig);
          e.desig = desig;
-         if( override_tle_filename)
+         if( strlen( desig) == 8 && !memcmp( desig + 6, "OE", 2))
+            {
+            char filename[20];
+
+            snprintf( filename, sizeof( filename), "%s.tle", desig);
+            show_ephems_from( PATH_TO_TLES, &e, filename, 0);
+            }
+         else if( override_tle_filename)
             show_ephems_from( PATH_TO_TLES, &e, override_tle_filename, 0);
          else
             generate_artsat_ephems( PATH_TO_TLES, &e);
