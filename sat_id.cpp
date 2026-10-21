@@ -468,7 +468,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
             strlcpy_error( toff.mpc_code, buff + 77);
             if( buff[14] == 's')
                {
-               int err_code = get_satellite_offset( buff, toff.posn);
+               const int err_code = get_satellite_offset( buff, toff.posn);
+
                for( i = 0; i < 3; i++)
                   toff.posn[i] *= AU_IN_KM;
                ecliptic_to_equatorial( toff.posn);
@@ -557,7 +558,8 @@ static OBSERVATION *get_observations_from_file( FILE *ifile, size_t *n_found,
       }
           /* Warn about obs with no offset data,  too. */
    for( i = 0; i < count; i++)
-      if( !rval[i].observer_loc[0] && !rval[i].observer_loc[1] && !rval[i].observer_loc[2])
+      if( !rval[i].observer_loc[0] && !rval[i].observer_loc[1] && !rval[i].observer_loc[2]
+                     && memcmp( rval[i].text + 77, "335", 3))
          if( n_errors_found++ < 10)
             fprintf( stderr, REVERSE_VIDEO "No position for this observation :\n%s\n"
                            NORMAL_VIDEO, rval[i].text);
