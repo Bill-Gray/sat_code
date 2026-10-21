@@ -24,7 +24,14 @@ undisturbed.
 
    This should help in the increasingly frequent situations where new
 TLE files are downloaded and then have only an error message,  or a
-drastically reduced number of TLEs.        */
+drastically reduced number of TLEs.
+
+   Also : we've managed to recover ten out of twelve Velas.  The Vela-6
+satellites have been poorly placed for asteroid survey recovery,  and
+we've only vague ideas where they are.  Space-Track has occasionally
+provided TLEs for them.  If they do so again,  this code will emit a
+notification,  and perhaps somebody can be persuaded to attempt
+observations.        */
 
 #include <stdio.h>
 #include <assert.h>
@@ -42,6 +49,7 @@ drastically reduced number of TLEs.        */
 int main( const int argc, const char **argv)
 {
    static const char *sats[] = {
+          "00072B ! AMSAT Oscar-40",
           "02048A ! INTEGRAL",
           "07004A ! THEMIS-A",
           "07004D ! THEMIS-D",
@@ -59,15 +67,29 @@ int main( const int argc, const char **argv)
           "15011D ! MMS 4",
           "15019C ! Yuanzheng-1 Y1",
           "15042B ! Breeze-M R/B",
+          "16035B ! Breeze-M R/B",
+          "16038C ! Falcon 9 R/B",
           "16041A ! MUOS 5",
           "18038A   TESS",
+          "19067C ! Breeze-M R/B",
+          "21001B ! Falcon 9 R/B",
           "22110B ! Ariane 5 R/B",
           "22146B ! Falcon 9 R/B",
           "22134B ! Falcon 9 R/B",
+          "22157B ! Falcon 9 R/B",
+          "23086B ! Falcon 9 R/B",
+          "24003B ! Falcon 9 R/B",
+          "24035B ! Falcon 9 R/B",
           "24048E ! DRO R/B",
+          "24115B ! Falcon 9 R/B",
           "24127B ! Falcon 9 R/B",
+          "24212B ! Falcon 9 R/B",
           "24233A ! Proba-3",
           "24233B ! Proba-3 booster",
+          "24233C ! Proba-3 OSC",
+          "25001B ! Falcon 9 R/B",
+          "25021B ! Falcon 9 R/B",
+          "25239A ! Spainsat NG II",
           "63039A   Vela 1A",
           "26109A   SMILE",
           "64040A   Vela 2A",
@@ -83,11 +105,15 @@ int main( const int argc, const char **argv)
           "76023C ! SOLRAD-11A",
           "76023G ! SOLRAD-11A/B PKM",
           "76023H ! SOLRAD-11 debris",
+          "76023J ! SOLRAD-11 P74-1 upper truss assembly",
           "77093E   SL-6 R/B(2)",
           "83020A ! ASTRON",
           "83020D ! ASTRON booster",
+          "84088A ! CCE-1 (AMPTE)",
+          "84088F ! CCE-1 (AMPTE) R/B",
           "92044A   GEOTAIL",
           "95062A ! ISO",
+          "95062B ! ISO upper stage",
           "95062C ! ISO debris",
           "97075B ! Equator S",
           "99040B ! Chandra X-Ray Observatory",
@@ -114,6 +140,7 @@ int main( const int argc, const char **argv)
             for( i = 0; sats[i]; i++)
                if( sats[i][0] == buff[9] && !memcmp( sats[i], buff + 9, 7))
                   sats[i] = "";
+                           /* see comments about Vela 6s above */
             if( !memcmp( buff + 9, "70027A ", 7))
                printf( VT_REVERSE "** 1970-027A = Vela 6A is listed! ***" VT_NORMAL "\n");
             if( !memcmp( buff + 9, "70027B ", 7))
